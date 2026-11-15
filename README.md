@@ -2,6 +2,8 @@
 
 **100% client-side, zero-backend personal data forensics & "Wrapped" telemetry generator.**
 
+[**Live Demo → wioledead.github.io/takeout-xray**](https://wioledead.github.io/takeout-xray/)
+
 Drag and drop massive personal archive exports (Telegram Desktop, ChatGPT, or Google Takeout Chrome History) directly into your browser. Not a single byte of your data ever leaves your device.
 
 ### Overview, Circadian Heatmap & Behavioral Forensics
