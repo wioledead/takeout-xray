@@ -4,6 +4,14 @@
 
 Drag and drop massive personal archive exports (Telegram Desktop, ChatGPT, or Google Takeout Chrome History) directly into your browser. Not a single byte of your data ever leaves your device.
 
+### Overview, Circadian Heatmap & Behavioral Forensics
+
+![Takeout X-Ray Overview Tour](docs/assets/overview-tour.gif)
+
+### ChatGPT DAG Lens, Live DuckDB SQL & Anonymized Wrapped Export
+
+![ChatGPT Lens, DuckDB SQL Console & Network Audit](docs/assets/sql-wrapped-audit.gif)
+
 ---
 
 ## Privacy & Architecture Guarantees
