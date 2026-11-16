@@ -385,6 +385,204 @@ export function buildLexiconSql(scope: QueryScope) {
       ORDER BY streakCount DESC, startTs DESC
       LIMIT 10;
     `,
+    antigravityLens: `
+      WITH step_stats AS (
+        SELECT
+          COUNT(*) FILTER (WHERE step_type = 'USER_INPUT') AS userPrompts,
+          COUNT(*) FILTER (WHERE step_type = 'PLANNER_RESPONSE') AS plannerSteps,
+          COALESCE(SUM(tool_call_count), 0) AS toolExecutions,
+          COALESCE(SUM(input_tokens), 0) AS totalInputTokens,
+          COALESCE(SUM(cache_read_tokens), 0) AS totalCacheReadTokens,
+          COALESCE(SUM(output_tokens), 0) AS totalOutputTokens,
+          COALESCE(SUM(thinking_chars), 0) AS thinkingChars,
+          COALESCE(SUM(reply_chars), 0) AS replyChars,
+          COUNT(*) FILTER (WHERE step_type = 'CHECKPOINT') AS checkpoints,
+          COUNT(*) FILTER (WHERE step_type = 'ERROR_MESSAGE') AS errors
+        FROM antigravity_steps
+        WHERE ${ew}
+      )
+      SELECT
+        userPrompts,
+        plannerSteps,
+        toolExecutions,
+        totalInputTokens,
+        totalCacheReadTokens,
+        totalOutputTokens,
+        ROUND(
+          totalCacheReadTokens * 100.0 / GREATEST(totalInputTokens + totalCacheReadTokens, 1),
+          1
+        ) AS cacheHitPct,
+        thinkingChars,
+        replyChars,
+        checkpoints,
+        errors
+      FROM step_stats;
+    `,
+    antigravityTopTools: `
+      WITH flat AS (
+        SELECT UNNEST(tool_names) AS toolName
+        FROM antigravity_steps
+        WHERE ${ew} AND array_length(tool_names) > 0
+      )
+      SELECT
+        toolName,
+        COUNT(*) AS calls,
+        SUM(COUNT(*)) OVER () AS totalToolCalls
+      FROM flat
+      GROUP BY toolName
+      ORDER BY calls DESC, toolName ASC
+      LIMIT 12;
+    `,
+    spotifyLens: `
+      SELECT
+        ROUND(COALESCE(SUM(ms_played), 0) / 3600000.0, 1) AS totalHours,
+        COUNT(*) AS totalPlays,
+        COUNT(DISTINCT creator_name) AS uniqueArtists,
+        COUNT(DISTINCT item_title || '||' || creator_name) AS uniqueTracks,
+        ROUND(COUNT(*) FILTER (WHERE is_skipped) * 100.0 / GREATEST(COUNT(*), 1), 1) AS skipPct,
+        ROUND(COUNT(*) FILTER (WHERE is_shuffle) * 100.0 / GREATEST(COUNT(*), 1), 1) AS shufflePct
+      FROM media_events
+      WHERE ${ew} AND source_type = 'spotify';
+    `,
+    spotifyTopArtists: `
+      SELECT
+        creator_name AS name,
+        COUNT(*) AS plays,
+        ROUND(COALESCE(SUM(ms_played), 0) / 60000.0, 1) AS minutes
+      FROM media_events
+      WHERE ${ew} AND source_type = 'spotify'
+      GROUP BY creator_name
+      ORDER BY minutes DESC, plays DESC
+      LIMIT 12;
+    `,
+    spotifyTopTracks: `
+      SELECT
+        item_title AS name,
+        creator_name AS artist,
+        COUNT(*) AS plays,
+        ROUND(COALESCE(SUM(ms_played), 0) / 60000.0, 1) AS minutes
+      FROM media_events
+      WHERE ${ew} AND source_type = 'spotify'
+      GROUP BY item_title, creator_name
+      ORDER BY plays DESC, minutes DESC
+      LIMIT 12;
+    `,
+    youtubeLens: `
+      SELECT
+        COUNT(*) AS totalVideos,
+        COUNT(DISTINCT creator_name) AS uniqueChannels,
+        COUNT(*) FILTER (WHERE album_or_sub = 'shorts') AS shortsCount,
+        ROUND(
+          COUNT(*) FILTER (WHERE album_or_sub = 'shorts') * 100.0 / GREATEST(COUNT(*), 1),
+          1
+        ) AS shortsPct
+      FROM media_events
+      WHERE ${ew} AND source_type = 'youtube';
+    `,
+    youtubeTopChannels: `
+      SELECT
+        creator_name AS channel,
+        COUNT(*) AS videos,
+        SUM(COUNT(*)) OVER () AS totalVideos
+      FROM media_events
+      WHERE ${ew} AND source_type = 'youtube' AND creator_name != 'Removed / Unavailable'
+      GROUP BY creator_name
+      ORDER BY videos DESC, channel ASC
+      LIMIT 12;
+    `,
+    youtubeBingeStreaks: `
+      WITH ordered AS (
+        SELECT
+          creator_name AS channel,
+          ts_ms,
+          media_id,
+          CASE
+            WHEN LAG(creator_name) OVER (ORDER BY ts_ms, media_id) = creator_name THEN 0
+            ELSE 1
+          END AS is_new_streak
+        FROM media_events
+        WHERE ${ew} AND source_type = 'youtube' AND creator_name != 'Removed / Unavailable'
+      ),
+      streaks AS (
+        SELECT
+          channel,
+          ts_ms,
+          SUM(is_new_streak) OVER (ORDER BY ts_ms, media_id ROWS UNBOUNDED PRECEDING) AS streak_id
+        FROM ordered
+      )
+      SELECT
+        channel,
+        COUNT(*) AS streakCount,
+        MIN(ts_ms) AS startTs
+      FROM streaks
+      GROUP BY streak_id, channel
+      HAVING COUNT(*) >= 3
+      ORDER BY streakCount DESC, startTs DESC
+      LIMIT 10;
+    `,
+    tiktokLens: `
+      WITH stats AS (
+        SELECT
+          COUNT(*) FILTER (WHERE platform = 'watch') AS totalVideos,
+          COUNT(*) FILTER (WHERE platform = 'like') AS totalLikes,
+          COUNT(*) FILTER (WHERE platform = 'search') AS totalSearches,
+          COUNT(DISTINCT creator_name) FILTER (
+            WHERE platform IN ('watch', 'like')
+              AND creator_name != 'tiktok.com'
+              AND creator_name != 'Liked Video'
+          ) AS uniqueCreators
+        FROM media_events
+        WHERE ${ew} AND source_type = 'tiktok'
+      )
+      SELECT
+        totalVideos,
+        totalLikes,
+        totalSearches,
+        uniqueCreators,
+        ROUND(totalLikes * 100.0 / GREATEST(totalVideos, 1), 1) AS likeRatePct
+      FROM stats;
+    `,
+    tiktokTopCreators: `
+      SELECT
+        creator_name AS creator,
+        COUNT(*) AS videos,
+        SUM(COUNT(*)) OVER () AS totalWatched
+      FROM media_events
+      WHERE ${ew} AND source_type = 'tiktok' AND platform IN ('watch', 'like') AND creator_name LIKE '@%'
+      GROUP BY creator_name
+      ORDER BY videos DESC, creator ASC
+      LIMIT 12;
+    `,
+    tiktokBingeStreaks: `
+      WITH ordered AS (
+        SELECT
+          creator_name AS channel,
+          ts_ms,
+          media_id,
+          CASE
+            WHEN LAG(creator_name) OVER (ORDER BY ts_ms, media_id) = creator_name THEN 0
+            ELSE 1
+          END AS is_new_streak
+        FROM media_events
+        WHERE ${ew} AND source_type = 'tiktok' AND platform = 'watch' AND creator_name LIKE '@%'
+      ),
+      streaks AS (
+        SELECT
+          channel,
+          ts_ms,
+          SUM(is_new_streak) OVER (ORDER BY ts_ms, media_id ROWS UNBOUNDED PRECEDING) AS streak_id
+        FROM ordered
+      )
+      SELECT
+        channel,
+        COUNT(*) AS streakCount,
+        MIN(ts_ms) AS startTs
+      FROM streaks
+      GROUP BY streak_id, channel
+      HAVING COUNT(*) >= 2
+      ORDER BY streakCount DESC, startTs DESC
+      LIMIT 10;
+    `,
   };
 }
 
@@ -553,6 +751,68 @@ WHERE prev_sender IS NOT NULL
   AND (ts_ms - prev_ts) BETWEEN 1000 AND 21600000
 GROUP BY sender_name
 ORDER BY reply_samples DESC;`,
+    },
+    {
+      id: 'antigravityTools',
+      sql: `WITH flat AS (
+  SELECT thread_id, UNNEST(tool_names) AS tool_name
+  FROM antigravity_steps
+  WHERE array_length(tool_names) > 0
+)
+SELECT
+  tool_name,
+  COUNT(*) AS calls,
+  COUNT(DISTINCT thread_id) AS sessions
+FROM flat
+GROUP BY tool_name
+ORDER BY calls DESC, tool_name ASC
+LIMIT 25;`,
+    },
+    {
+      id: 'antigravityTokens',
+      sql: `SELECT
+  t.title AS session,
+  COUNT(*) FILTER (WHERE s.step_type = 'USER_INPUT') AS prompts,
+  COALESCE(SUM(s.tool_call_count), 0) AS tools,
+  COALESCE(SUM(s.input_tokens), 0) AS uncached_in,
+  COALESCE(SUM(s.cache_read_tokens), 0) AS cache_read,
+  COALESCE(SUM(s.output_tokens), 0) AS output_tok,
+  ROUND(
+    COALESCE(SUM(s.cache_read_tokens), 0) * 100.0 /
+    GREATEST(COALESCE(SUM(s.input_tokens + s.cache_read_tokens), 0), 1),
+    1
+  ) AS cache_hit_pct
+FROM antigravity_steps s
+JOIN threads t ON s.thread_id = t.thread_id
+GROUP BY t.thread_id, t.title
+ORDER BY output_tok DESC, tools DESC
+LIMIT 50;`,
+    },
+    {
+      id: 'spotifyArtists',
+      sql: `SELECT
+  creator_name AS artist,
+  COUNT(*) AS plays,
+  ROUND(COALESCE(SUM(ms_played), 0) / 3600000.0, 2) AS hours_listened,
+  ROUND(COUNT(*) FILTER (WHERE is_skipped) * 100.0 / GREATEST(COUNT(*), 1), 1) AS skip_pct
+FROM media_events
+WHERE source_type = 'spotify'
+GROUP BY creator_name
+ORDER BY hours_listened DESC, plays DESC
+LIMIT 25;`,
+    },
+    {
+      id: 'youtubeChannels',
+      sql: `SELECT
+  creator_name AS channel,
+  COUNT(*) AS videos,
+  COUNT(*) FILTER (WHERE album_or_sub = 'shorts') AS shorts,
+  MAX(epoch_ms(ts_ms + ${off})) AS last_watched
+FROM media_events
+WHERE source_type IN ('youtube', 'tiktok')
+GROUP BY creator_name
+ORDER BY videos DESC
+LIMIT 25;`,
     },
   ];
 }

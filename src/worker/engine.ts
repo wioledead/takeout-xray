@@ -1,16 +1,22 @@
 import type {
+  AntigravityLensMetrics,
   BehaviorMetrics,
   ChatGptLensMetrics,
   ChromeLensMetrics,
   DashboardSnapshot,
   ExportFormat,
   LexiconMetrics,
+  NormalizedAntigravityStep,
   NormalizedEvent,
+  NormalizedMediaEvent,
   NormalizedThread,
   OverviewMetrics,
+  SpotifyLensMetrics,
   SqlCellValue,
   SqlQueryResult,
+  TikTokLensMetrics,
   YearlyWords,
+  YouTubeLensMetrics,
 } from '../types/domain';
 import {
   buildBehaviorSql,
@@ -132,65 +138,104 @@ export class XRayEngine {
     this.activeFormat = format;
   }
 
-  async ingestBatch(threads: NormalizedThread[], events: NormalizedEvent[]): Promise<void> {
+  private async insertNdjsonBatch(
+    tableName: string,
+    columnsSql: string,
+    rows: unknown[],
+    orIgnore = false,
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    const batchName = `${tableName}_batch_${this.batchCounter++}.ndjson`;
+    const ndjson = rows.map((row) => JSON.stringify(row)).join('\n');
+    await this.backend.registerFileText(batchName, ndjson);
+    try {
+      const insertClause = orIgnore ? `INSERT OR IGNORE INTO ${tableName}` : `INSERT INTO ${tableName}`;
+      await this.backend.query(`
+        ${insertClause}
+        SELECT * FROM read_json('${batchName}',
+          format = 'newline_delimited',
+          columns = {
+            ${columnsSql}
+          }
+        );
+      `);
+    } finally {
+      await this.backend.dropFile(batchName);
+    }
+  }
+
+  async ingestBatch(
+    threads: NormalizedThread[],
+    events: NormalizedEvent[],
+    steps: NormalizedAntigravityStep[] = [],
+    media: NormalizedMediaEvent[] = [],
+  ): Promise<void> {
     await this.init();
 
-    if (threads.length > 0) {
-      const batchName = `threads_batch_${this.batchCounter++}.ndjson`;
-      const ndjson = threads.map((t) => JSON.stringify(t)).join('\n');
-      await this.backend.registerFileText(batchName, ndjson);
-      try {
-        await this.backend.query(`
-          INSERT OR IGNORE INTO threads
-          SELECT * FROM read_json('${batchName}',
-            format = 'newline_delimited',
-            columns = {
-              thread_id: 'VARCHAR',
-              source_type: 'VARCHAR',
-              title: 'VARCHAR',
-              thread_kind: 'VARCHAR',
-              extra_count: 'INTEGER'
-            }
-          );
-        `);
-      } finally {
-        await this.backend.dropFile(batchName);
-      }
-    }
+    await this.insertNdjsonBatch(
+      'threads',
+      `thread_id: 'VARCHAR',
+       source_type: 'VARCHAR',
+       title: 'VARCHAR',
+       thread_kind: 'VARCHAR',
+       extra_count: 'INTEGER'`,
+      threads,
+      true,
+    );
 
-    if (events.length > 0) {
-      const batchName = `events_batch_${this.batchCounter++}.ndjson`;
-      const ndjson = events.map((e) => JSON.stringify(e)).join('\n');
-      await this.backend.registerFileText(batchName, ndjson);
-      try {
-        await this.backend.query(`
-          INSERT INTO events
-          SELECT * FROM read_json('${batchName}',
-            format = 'newline_delimited',
-            columns = {
-              event_id: 'VARCHAR',
-              thread_id: 'VARCHAR',
-              source_type: 'VARCHAR',
-              event_kind: 'VARCHAR',
-              ts_ms: 'BIGINT',
-              sender_id: 'VARCHAR',
-              sender_name: 'VARCHAR',
-              text_content: 'VARCHAR',
-              char_count: 'INTEGER',
-              word_count: 'INTEGER',
-              question_count: 'INTEGER',
-              has_code: 'BOOLEAN',
-              has_media: 'BOOLEAN',
-              emojis: 'VARCHAR[]',
-              domain: 'VARCHAR',
-              meta_subtype: 'VARCHAR'
-            }
-          );
-        `);
-      } finally {
-        await this.backend.dropFile(batchName);
-      }
-    }
+    await this.insertNdjsonBatch(
+      'events',
+      `event_id: 'VARCHAR',
+       thread_id: 'VARCHAR',
+       source_type: 'VARCHAR',
+       event_kind: 'VARCHAR',
+       ts_ms: 'BIGINT',
+       sender_id: 'VARCHAR',
+       sender_name: 'VARCHAR',
+       text_content: 'VARCHAR',
+       char_count: 'INTEGER',
+       word_count: 'INTEGER',
+       question_count: 'INTEGER',
+       has_code: 'BOOLEAN',
+       has_media: 'BOOLEAN',
+       emojis: 'VARCHAR[]',
+       domain: 'VARCHAR',
+       meta_subtype: 'VARCHAR'`,
+      events,
+    );
+
+    await this.insertNdjsonBatch(
+      'antigravity_steps',
+      `step_id: 'VARCHAR',
+       thread_id: 'VARCHAR',
+       step_index: 'INTEGER',
+       step_type: 'VARCHAR',
+       ts_ms: 'BIGINT',
+       input_tokens: 'BIGINT',
+       cache_read_tokens: 'BIGINT',
+       output_tokens: 'BIGINT',
+       thinking_chars: 'INTEGER',
+       reply_chars: 'INTEGER',
+       tool_call_count: 'INTEGER',
+       tool_names: 'VARCHAR[]'`,
+      steps,
+    );
+
+    await this.insertNdjsonBatch(
+      'media_events',
+      `media_id: 'VARCHAR',
+       thread_id: 'VARCHAR',
+       source_type: 'VARCHAR',
+       ts_ms: 'BIGINT',
+       creator_name: 'VARCHAR',
+       item_title: 'VARCHAR',
+       album_or_sub: 'VARCHAR',
+       ms_played: 'BIGINT',
+       is_skipped: 'BOOLEAN',
+       is_shuffle: 'BOOLEAN',
+       platform: 'VARCHAR'`,
+      media,
+    );
   }
 
   async getDashboardSnapshot(threadId: string, tzOffsetMs: number): Promise<DashboardSnapshot> {
@@ -374,7 +419,7 @@ export class XRayEngine {
       .map(([year, words]) => ({ year, words }));
 
     let chatgptLens: ChatGptLensMetrics | undefined;
-    if (format === 'chatgpt') {
+    if (format === 'chatgpt' || format === 'claude_ai') {
       const row = extractRows(await this.backend.query(sql.chatgptLens))[0];
       if (row) {
         chatgptLens = {
@@ -428,6 +473,146 @@ export class XRayEngine {
       };
     }
 
+    let antigravityLens: AntigravityLensMetrics | undefined;
+    if (format === 'antigravity' || format === 'claude_code') {
+      const [statsTable, toolsTable] = await Promise.all([
+        this.backend.query(sql.antigravityLens),
+        this.backend.query(sql.antigravityTopTools),
+      ]);
+      const row = extractRows(statsTable)[0];
+      const toolRows = extractRows(toolsTable);
+      const totalTools =
+        toNum(toolRows[0]?.totalToolCalls) ||
+        toolRows.reduce((acc, r) => acc + toNum(r.calls), 0) ||
+        1;
+
+      if (row) {
+        antigravityLens = {
+          userPrompts: toNum(row.userPrompts),
+          plannerSteps: toNum(row.plannerSteps),
+          toolExecutions: toNum(row.toolExecutions),
+          totalInputTokens: toNum(row.totalInputTokens),
+          totalCacheReadTokens: toNum(row.totalCacheReadTokens),
+          totalOutputTokens: toNum(row.totalOutputTokens),
+          cacheHitPct: toNum(row.cacheHitPct),
+          thinkingChars: toNum(row.thinkingChars),
+          replyChars: toNum(row.replyChars),
+          checkpoints: toNum(row.checkpoints),
+          errors: toNum(row.errors),
+          topTools: toolRows.map((r) => {
+            const calls = toNum(r.calls);
+            return {
+              toolName: String(r.toolName ?? 'unknown'),
+              calls,
+              sharePct: Number(((calls * 100) / totalTools).toFixed(1)),
+            };
+          }),
+        };
+      }
+    }
+
+    let spotifyLens: SpotifyLensMetrics | undefined;
+    if (format === 'spotify') {
+      const [statsTable, artistsTable, tracksTable] = await Promise.all([
+        this.backend.query(sql.spotifyLens),
+        this.backend.query(sql.spotifyTopArtists),
+        this.backend.query(sql.spotifyTopTracks),
+      ]);
+      const row = extractRows(statsTable)[0];
+      if (row) {
+        spotifyLens = {
+          totalHours: toNum(row.totalHours),
+          totalPlays: toNum(row.totalPlays),
+          uniqueArtists: toNum(row.uniqueArtists),
+          uniqueTracks: toNum(row.uniqueTracks),
+          skipPct: toNum(row.skipPct),
+          shufflePct: toNum(row.shufflePct),
+          topArtists: extractRows(artistsTable).map((r) => ({
+            name: String(r.name ?? 'Unknown Artist'),
+            plays: toNum(r.plays),
+            minutes: toNum(r.minutes),
+          })),
+          topTracks: extractRows(tracksTable).map((r) => ({
+            name: String(r.name ?? 'Unknown Track'),
+            artist: String(r.artist ?? ''),
+            plays: toNum(r.plays),
+            minutes: toNum(r.minutes),
+          })),
+        };
+      }
+    }
+
+    let youtubeLens: YouTubeLensMetrics | undefined;
+    if (format === 'youtube') {
+      const [statsTable, channelsTable, streaksTable] = await Promise.all([
+        this.backend.query(sql.youtubeLens),
+        this.backend.query(sql.youtubeTopChannels),
+        this.backend.query(sql.youtubeBingeStreaks),
+      ]);
+      const row = extractRows(statsTable)[0];
+      const chRows = extractRows(channelsTable);
+      const totalChVideos =
+        toNum(chRows[0]?.totalVideos) || chRows.reduce((acc, r) => acc + toNum(r.videos), 0) || 1;
+
+      if (row) {
+        youtubeLens = {
+          totalVideos: toNum(row.totalVideos),
+          uniqueChannels: toNum(row.uniqueChannels),
+          shortsCount: toNum(row.shortsCount),
+          shortsPct: toNum(row.shortsPct),
+          topChannels: chRows.map((r) => {
+            const videos = toNum(r.videos);
+            return {
+              channel: String(r.channel ?? 'Unknown Channel'),
+              videos,
+              sharePct: Number(((videos * 100) / totalChVideos).toFixed(1)),
+            };
+          }),
+          bingeStreaks: extractRows(streaksTable).map((r) => ({
+            channel: String(r.channel ?? 'Unknown Channel'),
+            streakCount: toNum(r.streakCount),
+            startTs: toNum(r.startTs),
+          })),
+        };
+      }
+    }
+
+    let tiktokLens: TikTokLensMetrics | undefined;
+    if (format === 'tiktok') {
+      const [statsTable, creatorsTable, streaksTable] = await Promise.all([
+        this.backend.query(sql.tiktokLens),
+        this.backend.query(sql.tiktokTopCreators),
+        this.backend.query(sql.tiktokBingeStreaks),
+      ]);
+      const row = extractRows(statsTable)[0];
+      const crRows = extractRows(creatorsTable);
+      const totalCrVideos =
+        toNum(crRows[0]?.totalWatched) || crRows.reduce((acc, r) => acc + toNum(r.videos), 0) || 1;
+
+      if (row) {
+        tiktokLens = {
+          totalVideos: toNum(row.totalVideos),
+          totalLikes: toNum(row.totalLikes),
+          totalSearches: toNum(row.totalSearches),
+          uniqueCreators: toNum(row.uniqueCreators),
+          likeRatePct: toNum(row.likeRatePct),
+          topCreators: crRows.map((r) => {
+            const videos = toNum(r.videos);
+            return {
+              creator: String(r.creator ?? '@creator'),
+              videos,
+              sharePct: Number(((videos * 100) / totalCrVideos).toFixed(1)),
+            };
+          }),
+          bingeStreaks: extractRows(streaksTable).map((r) => ({
+            channel: String(r.channel ?? '@creator'),
+            streakCount: toNum(r.streakCount),
+            startTs: toNum(r.startTs),
+          })),
+        };
+      }
+    }
+
     return {
       topWords: extractRows(wordsTable).map((r) => ({
         word: String(r.word ?? ''),
@@ -446,6 +631,10 @@ export class XRayEngine {
       })),
       chatgptLens,
       chromeLens,
+      antigravityLens,
+      spotifyLens,
+      youtubeLens,
+      tiktokLens,
     };
   }
 

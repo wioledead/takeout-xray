@@ -26,17 +26,52 @@ export interface TranslationDictionary {
     subtitle: string;
     dropActive: string;
     browseBtn: string;
+    browseFolderBtn: string;
+    copyPath: string;
+    copiedPath: string;
+    openGuidesBtn: string;
+    guidesModalTitle: string;
+    guidesModalSubtitle: string;
+    guidesExpectedLabel: string;
+    guidesClickHint: string;
+    zipInspecting: string;
+    zipMultiTitle: string;
+    zipMultiDesc: string;
+    zipCancel: string;
+    zipFilesUnit: string;
     supportedTitle: string;
-    supportedTg: string;
-    supportedGpt: string;
-    supportedChrome: string;
+    supportedAgents: string;
+    supportedChats: string;
+    supportedAiChats: string;
+    supportedMedia: string;
     demoTitle: string;
+    demoSubtitle: string;
+    demoRunBadge: string;
     demoTgTitle: string;
     demoTgDesc: string;
+    demoWaTitle: string;
+    demoWaDesc: string;
+    demoDiscordTitle: string;
+    demoDiscordDesc: string;
     demoGptTitle: string;
     demoGptDesc: string;
+    demoClaudeAiTitle: string;
+    demoClaudeAiDesc: string;
+    demoAgTitle: string;
+    demoAgDesc: string;
+    demoClaudeCodeTitle: string;
+    demoClaudeCodeDesc: string;
+    demoYtTitle: string;
+    demoYtDesc: string;
+    demoSpotifyTitle: string;
+    demoSpotifyDesc: string;
+    demoTiktokTitle: string;
+    demoTiktokDesc: string;
     demoChromeTitle: string;
     demoChromeDesc: string;
+    demoGuidesTitle: string;
+    demoGuidesDesc: string;
+    demoGuidesBadge: string;
     privacyTitle: string;
     privacyDesc: string;
     phaseDetecting: string;
@@ -52,6 +87,8 @@ export interface TranslationDictionary {
   overview: {
     totalEvents: string;
     totalVisits: string;
+    totalStreams: string;
+    totalVideosWatched: string;
     activeDays: string;
     totalWords: string;
     uniqueDomains: string;
@@ -60,6 +97,7 @@ export interface TranslationDictionary {
     dateSpan: string;
     serviceEvents: string;
     regeneratedBranches: string;
+    agentSteps: string;
     heatmapTitle: string;
     heatmapDesc: string;
     timelineTitle: string;
@@ -70,6 +108,18 @@ export interface TranslationDictionary {
     eventsCol: string;
     wordsCol: string;
     shareCol: string;
+    channelsTitle: string;
+    channelsDesc: string;
+    channelCol: string;
+    artistsTitle: string;
+    artistsDesc: string;
+    artistCol: string;
+    domainsTitle: string;
+    domainsDesc: string;
+    domainCol: string;
+    aiBalanceTitle: string;
+    aiBalanceDesc: string;
+    turnsCol: string;
     less: string;
     more: string;
     daysShort: [string, string, string, string, string, string, string];
@@ -87,6 +137,24 @@ export interface TranslationDictionary {
     maxStreak: string;
     avgTurn: string;
     monologues5Plus: string;
+    turnaroundTitle: string;
+    turnaroundDesc: string;
+    followUpTitle: string;
+    followUpDesc: string;
+    agentToolsTitle: string;
+    agentToolsDesc: string;
+    mediaBingeTitle: string;
+    mediaBingeDesc: string;
+    mediaEngagementTitle: string;
+    mediaEngagementDesc: string;
+    spotifyArtistsTitle: string;
+    spotifyArtistsDesc: string;
+    spotifyHabitsTitle: string;
+    spotifyHabitsDesc: string;
+    browserTransitionsTitle: string;
+    browserTransitionsDesc: string;
+    browserRabbitHolesTitle: string;
+    browserRabbitHolesDesc: string;
     circadianTitle: string;
     circadianDesc: string;
     nightOwlScore: string;
@@ -96,6 +164,7 @@ export interface TranslationDictionary {
     noReplyData: string;
     noMonologueData: string;
     chromeBehaviorNote: string;
+    mediaBehaviorNote: string;
   };
   lexicon: {
     topWordsTitle: string;
@@ -110,6 +179,7 @@ export interface TranslationDictionary {
     questionsDesc: string;
     questionsPer100: string;
     gptLensTitle: string;
+    claudeAiLensTitle: string;
     gptLensDesc: string;
     gptUserVsAssistant: string;
     gptPoliteness: string;
@@ -123,6 +193,46 @@ export interface TranslationDictionary {
     chromeRabbitHoles: string;
     visits: string;
     streak: string;
+    agLensTitle: string;
+    claudeCodeLensTitle: string;
+    agLensDesc: string;
+    agPromptTokens: string;
+    agCacheRead: string;
+    agOutputTokens: string;
+    agCacheHit: string;
+    agToolsExecuted: string;
+    agThinkingVsReply: string;
+    agCompactions: string;
+    agTopTools: string;
+    agCallsUnit: string;
+    spotifyLensTitle: string;
+    spotifyLensDesc: string;
+    spotifyHours: string;
+    spotifyPlays: string;
+    spotifyUniqueArtists: string;
+    spotifySkipRate: string;
+    spotifyShuffleRate: string;
+    spotifyTopArtists: string;
+    spotifyTopTracks: string;
+    spotifyMinsUnit: string;
+    ytLensTitle: string;
+    ytLensDesc: string;
+    ytTotalVideos: string;
+    ytUniqueChannels: string;
+    ytShortsShare: string;
+    ytTopChannels: string;
+    ytBingeStreaks: string;
+    ytVideosUnit: string;
+    ytStreakUnit: string;
+    ttLensTitle: string;
+    ttLensDesc: string;
+    ttWatchedVideos: string;
+    ttLikes: string;
+    ttSearches: string;
+    ttLikeRate: string;
+    ttUniqueCreators: string;
+    ttTopCreators: string;
+    ttBingeStreaks: string;
   };
   sql: {
     title: string;
@@ -138,6 +248,7 @@ export interface TranslationDictionary {
     rowsReturned: string;
     truncatedNotice: string;
     emptyResult: string;
+    recommendedBadge: string;
     presets: {
       monologues: string;
       lateNight: string;
@@ -145,6 +256,10 @@ export interface TranslationDictionary {
       hourlyVolume: string;
       emojis: string;
       responseTimes: string;
+      antigravityTools: string;
+      antigravityTokens: string;
+      spotifyArtists: string;
+      youtubeChannels: string;
     };
   };
   networkModal: {
@@ -179,7 +294,22 @@ export interface TranslationDictionary {
     topWords: string;
     topEmojis: string;
     topDomains: string;
+    topArtists: string;
+    topChannels: string;
+    topCreators: string;
     gptPolite: string;
+    agCacheTools: string;
+    topArtist: string;
+    listeningSummary: string;
+    topChannel: string;
+    ytFormats: string;
+    topCreator: string;
+    ttEngagement: string;
+    topDomain: string;
+    longestHole: string;
+    aiCodeDensity: string;
+    agCacheHit: string;
+    agToolsCount: string;
   };
 }
 
@@ -202,7 +332,15 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       tg_chat: 'TELEGRAM CHAT',
       tg_account: 'TELEGRAM ACCOUNT',
       chatgpt: 'CHATGPT ARCHIVE',
+      claude_ai: 'CLAUDE.AI ARCHIVE',
       chrome_history: 'CHROME HISTORY',
+      antigravity: 'ANTIGRAVITY 2.0',
+      claude_code: 'CLAUDE CODE CLI',
+      whatsapp: 'WHATSAPP CHAT',
+      discord: 'DISCORD ARCHIVE',
+      spotify: 'SPOTIFY HISTORY',
+      youtube: 'YOUTUBE HISTORY',
+      tiktok: 'TIKTOK EXPORT',
     },
     tabs: {
       overview: 'Overview',
@@ -211,23 +349,66 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       sql: 'SQL Console',
     },
     dropzone: {
-      title: 'DROP PERSONAL EXPORT JSON',
-      subtitle: 'Stream-parsed in a local Web Worker + DuckDB-Wasm. Supports 500MB+ files without freezing your browser.',
+      title: 'DROP ANY EXPORT (.ZIP / JSON / JSONL / TXT) OR FOLDER',
+      subtitle:
+        'Stream-parsed locally in Web Worker + DuckDB-Wasm. Handles 12 platforms including raw .zip Takeout archives, AI coding agents, messengers & media history without uploading a byte.',
       dropActive: 'RELEASE TO INITIATE LOCAL X-RAY SCAN',
-      browseBtn: 'Select JSON File',
-      supportedTitle: 'SUPPORTED FORENSIC FORMATS',
-      supportedTg: 'Telegram Desktop (result.json — single chat or full account export)',
-      supportedGpt: 'OpenAI ChatGPT Export (conversations.json DAG mapping)',
-      supportedChrome: 'Google Takeout Chrome (BrowserHistory.json)',
-      demoTitle: 'INSTANT CLIENT-SIDE DEMOS (SYNTHETIC DATA)',
-      demoTgTitle: 'Telegram Demo',
-      demoTgDesc: '~15,000 bilingual messages across 3 threads',
-      demoGptTitle: 'ChatGPT Demo',
-      demoGptDesc: '~300 conversations with regenerated branches',
-      demoChromeTitle: 'Chrome Demo',
-      demoChromeDesc: '~10,000 browser visits & rabbit holes',
+      browseBtn: 'Select Files / .ZIP',
+      browseFolderBtn: 'Select Folder (Brain / Discord / Claude)',
+      copyPath: 'Copy path',
+      copiedPath: 'Copied!',
+      openGuidesBtn: 'Where to get exports? · 12 Service Guides',
+      guidesModalTitle: 'EXPORT GUIDES · HOW TO EXTRACT YOUR DATA',
+      guidesModalSubtitle:
+        'Step-by-step instructions and local folder paths for every supported platform',
+      guidesExpectedLabel: 'Expected files',
+      guidesClickHint: 'Click any service for step-by-step export instructions:',
+      zipInspecting: 'Scanning .ZIP central directory locally...',
+      zipMultiTitle: 'MULTI-SERVICE .ZIP DETECTED',
+      zipMultiDesc: 'Multiple datasets found inside archive — select which export to dissect first:',
+      zipCancel: 'Cancel',
+      zipFilesUnit: 'files',
+      supportedTitle: '12 SUPPORTED FORENSIC FORMATS (.ZIP AUTO-EXTRACTED)',
+      supportedAgents:
+        'AI Agents: Antigravity 2.0 (brain/ folder or transcript_full.jsonl) & Claude Code CLI (~/.claude/projects/**/*.jsonl)',
+      supportedChats:
+        'Messengers: Telegram (result.json), WhatsApp (_chat.txt iOS/Android) & Discord (Data Package messages/ or DiscordChatExporter)',
+      supportedAiChats:
+        'AI Chats: OpenAI ChatGPT (conversations.json DAG) & Anthropic Claude.ai (conversations.json)',
+      supportedMedia:
+        'Browsers & Media: Google Chrome, YouTube (watch-history.json), Spotify (Streaming_History_*.json) & TikTok (user_data_tiktok.json)',
+      demoTitle: 'INSTANT CLIENT-SIDE DEMOS · ALL 11 PLATFORMS (SYNTHETIC DATA)',
+      demoSubtitle:
+        'Not sure what works? Pick any platform below to inspect a live synthetic report and see what file format to drop.',
+      demoRunBadge: 'DEMO →',
+      demoTgTitle: 'Telegram (Chat / Account)',
+      demoTgDesc: '~15,000 messages across 3 chats & reply cadence',
+      demoWaTitle: 'WhatsApp',
+      demoWaDesc: '1,400 chat messages, media markers & links',
+      demoDiscordTitle: 'Discord',
+      demoDiscordDesc: '1,500 server channels & DM messages',
+      demoGptTitle: 'OpenAI ChatGPT',
+      demoGptDesc: '300 conversations with regenerated DAG branches',
+      demoClaudeAiTitle: 'Anthropic Claude.ai',
+      demoClaudeAiDesc: '96 AI chats, prompt politeness & code blocks',
+      demoAgTitle: 'Antigravity 2.0',
+      demoAgDesc: '4 agent sessions with KV cache & tool calls',
+      demoClaudeCodeTitle: 'Claude Code CLI',
+      demoClaudeCodeDesc: '4 terminal coding sessions, tokens & Read/Edit/Bash',
+      demoYtTitle: 'YouTube',
+      demoYtDesc: '960 watches, Shorts ratio & channel streaks',
+      demoSpotifyTitle: 'Spotify',
+      demoSpotifyDesc: '1,400 streams, skip rates & artist obsession',
+      demoTiktokTitle: 'TikTok',
+      demoTiktokDesc: 'Feed watches, likes, searches & @creator streaks',
+      demoChromeTitle: 'Google Chrome',
+      demoChromeDesc: '~10,000 browser visits & domain rabbit holes',
+      demoGuidesTitle: 'Where to download your archive?',
+      demoGuidesDesc: 'Step-by-step instructions & paths for all 12 supported formats',
+      demoGuidesBadge: 'GUIDES →',
       privacyTitle: 'ZERO-EXFILTRATION GUARANTEE',
-      privacyDesc: 'No backend. No cloud upload. Files stream in 64KB slices straight into in-browser DuckDB-Wasm tables.',
+      privacyDesc:
+        'No backend. No cloud upload. Even .zip decompression runs 100% in-browser via streaming central-directory slicing straight into DuckDB-Wasm.',
       phaseDetecting: 'SNIFFING EXPORT SIGNATURE...',
       phaseStreaming: 'STREAMING & BATCHING INTO DUCKDB...',
       phaseIndexing: 'COMPUTING FORENSIC TELEMETRY...',
@@ -237,11 +418,13 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       threadsFound: 'THREADS',
       errorPrefix: 'INGESTION FAILED',
       unsupportedFormat:
-        'Unrecognized JSON structure. Expected Telegram (result.json), ChatGPT (conversations.json), or Google Takeout Chrome (BrowserHistory.json).',
+        'Unrecognized archive format. Drop a .zip/.json/.jsonl/.txt export from Antigravity, Claude Code, Telegram, WhatsApp, Discord, ChatGPT, Claude.ai, Chrome, YouTube, Spotify, or TikTok.',
     },
     overview: {
       totalEvents: 'Total Events',
       totalVisits: 'Total Visits',
+      totalStreams: 'Total Streams',
+      totalVideosWatched: 'Videos Watched',
       activeDays: 'Active Days',
       totalWords: 'Total Words',
       uniqueDomains: 'Media / Domains',
@@ -249,7 +432,8 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       threadsCount: 'Threads / Chats',
       dateSpan: 'Time Horizon',
       serviceEvents: 'Service Events',
-      regeneratedBranches: 'Regenerated Branches',
+      regeneratedBranches: 'Regenerated / Extra Blocks',
+      agentSteps: 'Tool & Sys Steps',
       heatmapTitle: '24 × 7 Circadian Activity Matrix',
       heatmapDesc: 'Local timezone intensity across day-of-week and hour-of-day',
       timelineTitle: 'Temporal Activity Pulse',
@@ -260,6 +444,18 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       eventsCol: 'Events',
       wordsCol: 'Words',
       shareCol: 'Share',
+      channelsTitle: 'Top Channels / @Creators',
+      channelsDesc: 'Highest watch share across observed creators & channels',
+      channelCol: 'Channel / @Creator',
+      artistsTitle: 'Most Streamed Artists',
+      artistsDesc: 'Top artists by total stream events & listening share',
+      artistCol: 'Artist',
+      domainsTitle: 'Top Visited Domains',
+      domainsDesc: 'Most frequently accessed websites & hosts',
+      domainCol: 'Domain',
+      aiBalanceTitle: 'User vs AI Turn Balance',
+      aiBalanceDesc: 'Prompt & reply volume comparison',
+      turnsCol: 'Turns',
       less: 'Quiet',
       more: 'Peak',
       daysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -277,6 +473,24 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       maxStreak: 'Max Streak',
       avgTurn: 'Avg / Turn',
       monologues5Plus: '5+ Chains',
+      turnaroundTitle: 'Turn Pacing & Generation Speed',
+      turnaroundDesc: 'Median delay between user prompt and model reply (excludes >6h breaks)',
+      followUpTitle: 'Consecutive Prompt Streaks',
+      followUpDesc: 'Multi-turn follow-ups vs alternating responses',
+      agentToolsTitle: 'Most Invoked Agent Tools',
+      agentToolsDesc: 'Distribution of shell, file read/edit, search & subagent calls',
+      mediaBingeTitle: 'Channel / Creator Binge Marathons',
+      mediaBingeDesc: 'Longest uninterrupted multi-video streaks on a single channel or creator',
+      mediaEngagementTitle: 'Format & Feed Engagement Mix',
+      mediaEngagementDesc: 'Short-form vs standard viewing and interactive actions ratio',
+      spotifyArtistsTitle: 'Artist Obsession Concentration',
+      spotifyArtistsDesc: 'Listening share across your most-replayed artists',
+      spotifyHabitsTitle: 'Playback Discipline (Skip vs Shuffle)',
+      spotifyHabitsDesc: 'Skipped tracks, shuffle toggle rate, total hours & unique catalog',
+      browserTransitionsTitle: 'Navigation Entry Transitions',
+      browserTransitionsDesc: 'How browsing sessions started (clicked links, typed URLs, reloads)',
+      browserRabbitHolesTitle: 'Consecutive Domain Rabbit Holes',
+      browserRabbitHolesDesc: 'Deepest unbroken visit streaks on a single website',
       circadianTitle: 'Hourly Activity Distribution',
       circadianDesc: '24-hour fingerprint in your local timezone',
       nightOwlScore: 'Night Owl Index (00:00–05:00)',
@@ -285,7 +499,10 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       noInitiatorData: 'No conversation session starts recorded in this selection.',
       noReplyData: 'Need at least 2 alternating participants within 6h windows to measure reply latency.',
       noMonologueData: 'Monologue streaks apply to message threads with dialogue turns.',
-      chromeBehaviorNote: 'Chrome browsing mode tracks session openings (6h+ idle gaps) and domain streaks across devices.',
+      chromeBehaviorNote:
+        'Chrome browsing mode tracks session openings (6h+ idle gaps) and domain streaks across devices.',
+      mediaBehaviorNote:
+        'Media consumption mode tracks session openings after 6+ hour breaks and creator listening/watch cadence.',
     },
     lexicon: {
       topWordsTitle: 'Top Vocabulary (Stopwords Filtered)',
@@ -300,11 +517,12 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       questionsDesc: 'Questions asked per 100 messages by participant',
       questionsPer100: 'questions / 100 msgs',
       gptLensTitle: 'ChatGPT Prompt Forensics Lens',
-      gptLensDesc: 'Inspect human-vs-model footprint, politeness, code density & abandoned DAG branches',
+      claudeAiLensTitle: 'Claude.ai Prompt Forensics Lens',
+      gptLensDesc: 'Inspect human-vs-model footprint, politeness, code density & extra/thinking turns',
       gptUserVsAssistant: 'User vs Assistant Chars',
       gptPoliteness: 'Polite Prompts (please/thanks)',
       gptCodeDensity: 'Messages with Code Blocks',
-      gptRegenBranches: 'Discarded / Regenerated Branches',
+      gptRegenBranches: 'Branches / Thinking Turns',
       gptPeakHour: 'Peak Prompting Hour',
       chromeLensTitle: 'Chrome Navigation Forensics Lens',
       chromeLensDesc: 'Top domains, navigation transitions & single-domain rabbit holes',
@@ -313,6 +531,46 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       chromeRabbitHoles: 'Longest Domain Rabbit Holes',
       visits: 'visits',
       streak: 'consecutive visits',
+      agLensTitle: 'Antigravity 2.0 Agent Telemetry Lens',
+      claudeCodeLensTitle: 'Claude Code CLI Agent Telemetry Lens',
+      agLensDesc: 'Token budget, KV prompt cache efficiency, internal thinking vs replies & tool calls',
+      agPromptTokens: 'Input Tokens (Uncached)',
+      agCacheRead: 'Cache Read Tokens',
+      agOutputTokens: 'Output Tokens',
+      agCacheHit: 'KV Cache Hit Rate',
+      agToolsExecuted: 'Total Tool Calls',
+      agThinkingVsReply: 'Thinking / Reply Chars',
+      agCompactions: 'Compactions / Errors',
+      agTopTools: 'Most Frequent Tool Calls',
+      agCallsUnit: 'calls',
+      spotifyLensTitle: 'Spotify Audio Forensics Lens',
+      spotifyLensDesc: 'Listening hours, skip/shuffle habits & top obsessed artists and tracks',
+      spotifyHours: 'Hours Streamed',
+      spotifyPlays: 'Track Plays',
+      spotifyUniqueArtists: 'Unique Artists / Tracks',
+      spotifySkipRate: 'Skip Rate',
+      spotifyShuffleRate: 'Shuffle Rate',
+      spotifyTopArtists: 'Top Artists by Listening Time',
+      spotifyTopTracks: 'Most Replayed Tracks',
+      spotifyMinsUnit: 'min',
+      ytLensTitle: 'YouTube Watch Forensics Lens',
+      ytLensDesc: 'Channel concentration, Shorts ratio & consecutive watch marathons',
+      ytTotalVideos: 'Videos Watched',
+      ytUniqueChannels: 'Unique Channels',
+      ytShortsShare: 'Shorts Share',
+      ytTopChannels: 'Top Watched Channels',
+      ytBingeStreaks: 'Longest Channel Binge Streaks',
+      ytVideosUnit: 'videos',
+      ytStreakUnit: 'in a row',
+      ttLensTitle: 'TikTok Feed & Dopamine Lens',
+      ttLensDesc: 'Watched feed volume, like-to-watch ratio, search habits & creator streaks',
+      ttWatchedVideos: 'Watched Videos',
+      ttLikes: 'Liked Videos',
+      ttSearches: 'Search Queries',
+      ttLikeRate: 'Like / Watch Ratio',
+      ttUniqueCreators: 'Identified @Creators',
+      ttTopCreators: 'Top @Creators',
+      ttBingeStreaks: 'Creator Feed Streaks',
     },
     sql: {
       title: 'Live DuckDB-Wasm SQL Console',
@@ -328,6 +586,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       rowsReturned: 'Rows',
       truncatedNotice: 'Display capped at 500 rows to protect DOM responsiveness.',
       emptyResult: 'Query executed cleanly and returned 0 rows.',
+      recommendedBadge: 'FOR THIS SOURCE',
       presets: {
         monologues: 'Top 10 Longest Monologues',
         lateNight: 'Late Night Activity (00:00–05:00)',
@@ -335,6 +594,10 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
         hourlyVolume: 'Hourly Volume & Words',
         emojis: 'Emoji Leaderboard',
         responseTimes: 'Median Reply Latency SQL',
+        antigravityTools: 'Agent Top Tools (Antigravity / Claude Code)',
+        antigravityTokens: 'Agent Tokens & KV Cache by Session',
+        spotifyArtists: 'Spotify Top Artists & Hours',
+        youtubeChannels: 'YouTube / TikTok Top Channels',
       },
     },
     networkModal: {
@@ -344,32 +607,47 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       statusAlert: 'OUTGOING PAYLOAD DETECTED',
       bytesSent: 'Bytes Sent After Init',
       externalRequests: 'External Requests',
-      observedCount: 'Observed Browser Entries',
+      observedCount: 'Logged Events',
       colTime: 'Time',
       colKind: 'Type',
       colUrl: 'Target',
-      colBytes: 'Sent Bytes',
-      emptyLog: 'No post-initialization outgoing network payloads recorded.',
+      colBytes: 'Bytes Out',
+      emptyLog: 'No outgoing network activity recorded after engine initialization.',
       close: 'Close',
     },
     shareModal: {
-      title: 'X-Ray Wrapped Poster Generator',
-      subtitle: 'Export a high-res 1080×1350 Cyber-Terminal telemetry poster locally as PNG',
+      title: 'X-Ray Wrapped Card Generator',
+      subtitle: 'Renders a 1080×1350 terminal poster locally in PNG without leaving your browser',
       anonymize: 'Anonymize Names',
       downloadPng: 'Download PNG',
       exporting: 'Rendering PNG...',
-      exportFailed: 'Failed to export PNG image in this browser.',
+      exportFailed: 'Failed to export PNG in current browser context.',
       close: 'Close',
       cardHeader: 'PERSONAL DATA FORENSICS // WRAPPED',
       cardFooter: '100% LOCAL · DUCKDB-WASM · 0 BYTES EXFILTRATED',
       topInitiator: 'Top Initiator',
       replySpeed: 'Median Reply',
-      nightOwl: 'Night Owl',
+      nightOwl: 'Night Owl Index',
       peakHour: 'Peak Hour',
       topWords: 'Top Vocabulary',
-      topEmojis: 'Signature Emojis',
+      topEmojis: 'Top Emojis',
       topDomains: 'Top Domains',
+      topArtists: 'Top Artists',
+      topChannels: 'Top Channels',
+      topCreators: 'Top Creators',
       gptPolite: 'Polite Prompts',
+      agCacheTools: 'KV Cache / Tools',
+      topArtist: 'Top Artist',
+      listeningSummary: 'Audio Time / Skip',
+      topChannel: 'Top Channel',
+      ytFormats: 'Channels / Shorts',
+      topCreator: 'Top @Creator',
+      ttEngagement: 'Likes / Searches',
+      topDomain: 'Top Domain',
+      longestHole: 'Deepest Dive',
+      aiCodeDensity: 'Code Prompts',
+      agCacheHit: 'KV Cache Hit',
+      agToolsCount: 'Tools Executed',
     },
   },
   ru: {
@@ -390,7 +668,15 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       tg_chat: 'TELEGRAM ЧАТ',
       tg_account: 'TELEGRAM АККАУНТ',
       chatgpt: 'АРХИВ CHATGPT',
+      claude_ai: 'АРХИВ CLAUDE.AI',
       chrome_history: 'ИСТОРИЯ CHROME',
+      antigravity: 'ANTIGRAVITY 2.0',
+      claude_code: 'CLAUDE CODE CLI',
+      whatsapp: 'ЧАТ WHATSAPP',
+      discord: 'АРХИВ DISCORD',
+      spotify: 'ИСТОРИЯ SPOTIFY',
+      youtube: 'ИСТОРИЯ YOUTUBE',
+      tiktok: 'ЭКСПОРТ TIKTOK',
     },
     tabs: {
       overview: 'Обзор',
@@ -399,23 +685,66 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       sql: 'SQL Консоль',
     },
     dropzone: {
-      title: 'ПЕРЕТАЩИТЕ JSON-ЭКСПОРТ СЮДА',
-      subtitle: 'Потоковый парсинг внутри Web Worker + DuckDB-Wasm. Файлы 500+ МБ обрабатываются без зависаний.',
-      dropActive: 'ОТПУСТИТЕ ФАЙЛ ДЛЯ ЛОКАЛЬНОГО СКАНИРОВАНИЯ',
-      browseBtn: 'Выбрать JSON-файл',
-      supportedTitle: 'ПОДДЕРЖИВАЕМЫЕ ФОРМАТЫ',
-      supportedTg: 'Telegram Desktop (result.json — отдельный чат или весь аккаунт)',
-      supportedGpt: 'Экспорт OpenAI ChatGPT (conversations.json с деревом веток)',
-      supportedChrome: 'Google Takeout Chrome (BrowserHistory.json)',
-      demoTitle: 'МГНОВЕННЫЕ ДЕМО-ДАННЫЕ (СИНТЕТИКА)',
-      demoTgTitle: 'Демо Telegram',
-      demoTgDesc: '~15 000 двуязычных сообщений в 3 чатах',
-      demoGptTitle: 'Демо ChatGPT',
-      demoGptDesc: '~300 диалогов с ветками перегенерации',
-      demoChromeTitle: 'Демо Chrome',
-      demoChromeDesc: '~10 000 визитов и «кроличьих нор»',
+      title: 'ПЕРЕТАЩИТЕ ЭКСПОРТ (.ZIP / JSON / JSONL / TXT) ИЛИ ПАПКУ',
+      subtitle:
+        'Потоковый парсинг в Web Worker + DuckDB-Wasm. 12 сервисов: сырые .zip-архивы Takeout, ИИ-агенты, мессенджеры и медиа-история — без единого байта в сеть.',
+      dropActive: 'ОТПУСТИТЕ ФАЙЛ, .ZIP ИЛИ ПАПКУ ДЛЯ СКАНИРОВАНИЯ',
+      browseBtn: 'Выбрать файлы / .ZIP',
+      browseFolderBtn: 'Выбрать папку (brain / Discord / Claude)',
+      copyPath: 'Копировать путь',
+      copiedPath: 'Скопировано!',
+      openGuidesBtn: 'Откуда брать выгрузки? · Гайды по 12 сервисам',
+      guidesModalTitle: 'ГАЙДЫ ПО ЭКСПОРТУ · КАК ПОЛУЧИТЬ АРХИВЫ',
+      guidesModalSubtitle:
+        'Пошаговые инструкции и локальные пути папок для каждого поддерживаемого сервиса',
+      guidesExpectedLabel: 'Ожидаемые файлы',
+      guidesClickHint: 'Нажмите на сервис для пошаговой инструкции:',
+      zipInspecting: 'Чтение оглавления .ZIP архива локально...',
+      zipMultiTitle: 'В .ZIP ОБНАРУЖЕНО НЕСКОЛЬКО СЕРВИСОВ',
+      zipMultiDesc: 'В архиве сразу несколько выгрузок — выберите, что разобрать первым:',
+      zipCancel: 'Отмена',
+      zipFilesUnit: 'файл.',
+      supportedTitle: '12 ПОДДЕРЖИВАЕМЫХ ФОРМАТОВ (+ ПОТОКОВЫЙ .ZIP)',
+      supportedAgents:
+        'ИИ-агенты: Antigravity 2.0 (папка brain/ или transcript_full.jsonl) и Claude Code CLI (~/.claude/projects/**/*.jsonl)',
+      supportedChats:
+        'Мессенджеры: Telegram (result.json), WhatsApp (_chat.txt iOS/Android) и Discord (Data Package messages/ или DiscordChatExporter)',
+      supportedAiChats:
+        'ИИ-чаты: OpenAI ChatGPT (conversations.json DAG) и Anthropic Claude.ai (conversations.json)',
+      supportedMedia:
+        'Браузер и медиа: Chrome, YouTube (watch-history.json), Spotify (Streaming_History_*.json) и TikTok (user_data_tiktok.json)',
+      demoTitle: 'МГНОВЕННЫЕ ДЕМО · ВСЕ 11 ПЛАТФОРМ (СИНТЕТИКА)',
+      demoSubtitle:
+        'Неясно, что сюда можно закинуть? Нажмите на любой сервис — запустится демо-отчёт и виден нужный формат файла.',
+      demoRunBadge: 'ДЕМО →',
+      demoTgTitle: 'Telegram (чат / аккаунт)',
+      demoTgDesc: '~15 000 сообщений в 3 чатах и скорость ответов',
+      demoWaTitle: 'WhatsApp',
+      demoWaDesc: '1 400 сообщений, пропуски медиа и ссылки',
+      demoDiscordTitle: 'Discord',
+      demoDiscordDesc: '1 500 сообщений из каналов сервера и ЛС',
+      demoGptTitle: 'OpenAI ChatGPT',
+      demoGptDesc: '300 диалогов с ветками перегенерации',
+      demoClaudeAiTitle: 'Anthropic Claude.ai',
+      demoClaudeAiDesc: '96 диалогов, вежливость промптов и код',
+      demoAgTitle: 'Antigravity 2.0',
+      demoAgDesc: '4 сессии агента с KV-кэшем и вызовами тулзов',
+      demoClaudeCodeTitle: 'Claude Code CLI',
+      demoClaudeCodeDesc: '4 терминальные сессии, токены и Read/Edit/Bash',
+      demoYtTitle: 'YouTube',
+      demoYtDesc: '960 видео, доля Shorts и марафоны каналов',
+      demoSpotifyTitle: 'Spotify',
+      demoSpotifyDesc: '1 400 прослушиваний, скипы и топ-артисты',
+      demoTiktokTitle: 'TikTok',
+      demoTiktokDesc: 'Лента просмотров, лайки, поиск и серии @авторов',
+      demoChromeTitle: 'Google Chrome',
+      demoChromeDesc: '~10 000 визитов и «кроличьих нор» доменов',
+      demoGuidesTitle: 'Где скачать свои архивы?',
+      demoGuidesDesc: 'Пошаговые инструкции и пути для всех 12 форматов выгрузки',
+      demoGuidesBadge: 'ГАЙДЫ →',
       privacyTitle: 'ГАРАНТИЯ НУЛЕВОЙ ОТПРАВКИ',
-      privacyDesc: 'Без бэкенда и облака. Данные читаются чанками по 64 КБ прямо в локальную БД DuckDB-Wasm.',
+      privacyDesc:
+        'Без бэкенда и облака. Даже распаковка .zip работает потоково прямо в браузере и пишет батчи напрямую в DuckDB-Wasm.',
       phaseDetecting: 'ОПРЕДЕЛЕНИЕ СИГНАТУРЫ ФАЙЛА...',
       phaseStreaming: 'ПОТОКОВЫЙ ПАРСИНГ И ЗАГРУЗКА В DUCKDB...',
       phaseIndexing: 'РАСЧЁТ МЕТРИК...',
@@ -425,11 +754,13 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       threadsFound: 'ДИАЛОГОВ',
       errorPrefix: 'ОШИБКА ИМПОРТА',
       unsupportedFormat:
-        'Неизвестная структура JSON. Поддерживаются экспорты Telegram (result.json), ChatGPT (conversations.json) и Chrome (BrowserHistory.json).',
+        'Неизвестная структура экспорта. Поддерживаются .zip/.json/.jsonl/.txt из Antigravity, Claude Code, Telegram, WhatsApp, Discord, ChatGPT, Claude.ai, Chrome, YouTube, Spotify и TikTok.',
     },
     overview: {
       totalEvents: 'Всего событий',
       totalVisits: 'Всего визитов',
+      totalStreams: 'Прослушиваний',
+      totalVideosWatched: 'Просмотров видео',
       activeDays: 'Активных дней',
       totalWords: 'Всего слов',
       uniqueDomains: 'Медиа / домены',
@@ -437,7 +768,8 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       threadsCount: 'Чаты / треды',
       dateSpan: 'Период',
       serviceEvents: 'Системные события',
-      regeneratedBranches: 'Скрытые ветки',
+      regeneratedBranches: 'Ветки / Thinking',
+      agentSteps: 'Шаги агента и тулзы',
       heatmapTitle: 'Матрица активности 24 × 7',
       heatmapDesc: 'Локальный часовой пояс: дни недели и часы суток',
       timelineTitle: 'Динамика активности во времени',
@@ -448,6 +780,18 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       eventsCol: 'События',
       wordsCol: 'Слова',
       shareCol: 'Доля',
+      channelsTitle: 'Топ каналов / @авторов',
+      channelsDesc: 'Лидеры просмотров и доля внимания по каналам',
+      channelCol: 'Канал / @автор',
+      artistsTitle: 'Главные артисты',
+      artistsDesc: 'Частота прослушиваний и доля среди всех стримов',
+      artistCol: 'Артист',
+      domainsTitle: 'Топ посещаемых доменов',
+      domainsDesc: 'Самые посещаемые сайты и хосты',
+      domainCol: 'Домен',
+      aiBalanceTitle: 'Баланс: Пользователь и ИИ',
+      aiBalanceDesc: 'Сравнение объёма ваших запросов и ответов модели',
+      turnsCol: 'Реплики',
       less: 'Тише',
       more: 'Пик',
       daysShort: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -465,6 +809,24 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       maxStreak: 'Макс. серия',
       avgTurn: 'В среднем',
       monologues5Plus: 'Серий 5+',
+      turnaroundTitle: 'Тайминг диалога с ИИ',
+      turnaroundDesc: 'Медианная пауза ответа модели против времени на ваш следующий промпт',
+      followUpTitle: 'Серии уточнений подряд',
+      followUpDesc: 'Сколько промптов подряд отправляется до смены хода',
+      agentToolsTitle: 'Топ вызываемых тулзов',
+      agentToolsDesc: 'Распределение вызовов терминала, чтения/правки файлов и поиска',
+      mediaBingeTitle: 'Марафоны просмотра подряд',
+      mediaBingeDesc: 'Самые длинные серии видео подряд на одном канале или @авторе',
+      mediaEngagementTitle: 'Форматы и вовлечённость',
+      mediaEngagementDesc: 'Соотношение коротких клипов, обычных видео и лайков/поиска',
+      spotifyArtistsTitle: 'Концентрация на любимых артистах',
+      spotifyArtistsDesc: 'Распределение часов и треков по главным исполнителям',
+      spotifyHabitsTitle: 'Привычки плеера (Skip / Shuffle)',
+      spotifyHabitsDesc: 'Процент пропусков, режим перемешивания, общее время и уникальные треки',
+      browserTransitionsTitle: 'Способы переходов на сайты',
+      browserTransitionsDesc: 'Клик по ссылке, прямой ввод URL в строку, перезагрузка и др.',
+      browserRabbitHolesTitle: 'Самые глубокие «кроличьи норы»',
+      browserRabbitHolesDesc: 'Длинные серии переходов подряд внутри одного домена',
       circadianTitle: 'Суточный профиль активности',
       circadianDesc: 'Распределение по часам в локальном часовом поясе',
       nightOwlScore: 'Индекс «Совы» (00:00–05:00)',
@@ -473,7 +835,10 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       noInitiatorData: 'В выбранном срезе нет зафиксированных стартов сессий.',
       noReplyData: 'Для расчёта скорости ответа нужно минимум 2 собеседника с окном ответа < 6 ч.',
       noMonologueData: 'Серии монологов рассчитываются для диалогов и чатов с сообщениями.',
-      chromeBehaviorNote: 'Для истории браузера фиксируются старты новых сессий (после 6+ ч паузы) и суточный ритм.',
+      chromeBehaviorNote:
+        'Для истории браузера фиксируются старты новых сессий (после 6+ ч паузы) и суточный ритм.',
+      mediaBehaviorNote:
+        'В медиа-режиме учитываются старты сессий после 6-часовых пауз и ритм переключения авторов.',
     },
     lexicon: {
       topWordsTitle: 'Топ-словарь (без стоп-слов)',
@@ -488,11 +853,12 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       questionsDesc: 'Сколько вопросов приходится на каждые 100 сообщений',
       questionsPer100: 'вопросов / 100 сообщ.',
       gptLensTitle: 'Спец-аналитика ChatGPT',
-      gptLensDesc: 'Соотношение текста, вежливость промптов, доля кода и отброшенные ветки генераций',
+      claudeAiLensTitle: 'Спец-аналитика Claude.ai',
+      gptLensDesc: 'Соотношение текста, вежливость промптов, доля кода и дополнительные/thinking шаги',
       gptUserVsAssistant: 'Символы: Пользователь / ИИ',
       gptPoliteness: 'Вежливые промпты (please/спасибо)',
       gptCodeDensity: 'Сообщения с блоками кода',
-      gptRegenBranches: 'Отброшенные ветки DAG',
+      gptRegenBranches: 'Ветки / Thinking шаги',
       gptPeakHour: 'Пиковый час промптов',
       chromeLensTitle: 'Спец-аналитика Chrome',
       chromeLensDesc: 'Топ доменов, типы переходов и самые длинные серии визитов на один сайт',
@@ -501,6 +867,46 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       chromeRabbitHoles: 'Самые глубокие «кроличьи норы»',
       visits: 'визитов',
       streak: 'визитов подряд',
+      agLensTitle: 'Телеметрия агента Antigravity 2.0',
+      claudeCodeLensTitle: 'Телеметрия агента Claude Code CLI',
+      agLensDesc: 'Бюджет токенов, попадание в KV-кэш, внутренний thinking против ответов и карта инструментов',
+      agPromptTokens: 'Входные токены (новые)',
+      agCacheRead: 'Чтение из KV-кэша',
+      agOutputTokens: 'Выходные токены',
+      agCacheHit: 'Попадание в KV-кэш',
+      agToolsExecuted: 'Вызовов инструментов',
+      agThinkingVsReply: 'Символы: Thinking / Ответы',
+      agCompactions: 'Сжатий контекста / Ошибок',
+      agTopTools: 'Топ вызываемых инструментов',
+      agCallsUnit: 'выз.',
+      spotifyLensTitle: 'Спец-аналитика Spotify Audio',
+      spotifyLensDesc: 'Часы прослушивания, привычки skip/shuffle и главные артисты с треками',
+      spotifyHours: 'Часов прослушано',
+      spotifyPlays: 'Всего треков',
+      spotifyUniqueArtists: 'Артистов / Треков',
+      spotifySkipRate: 'Доля скипов (Skip)',
+      spotifyShuffleRate: 'Режим Shuffle',
+      spotifyTopArtists: 'Топ артистов по времени',
+      spotifyTopTracks: 'Главные треки на повторе',
+      spotifyMinsUnit: 'мин',
+      ytLensTitle: 'Спец-аналитика YouTube Watch',
+      ytLensDesc: 'Концентрация по каналам, доля Shorts и самые длинные марафоны подряд',
+      ytTotalVideos: 'Видео просмотрено',
+      ytUniqueChannels: 'Уникальных каналов',
+      ytShortsShare: 'Доля Shorts',
+      ytTopChannels: 'Топ каналов по просмотрам',
+      ytBingeStreaks: 'Марафоны на одном канале',
+      ytVideosUnit: 'видео',
+      ytStreakUnit: 'подряд',
+      ttLensTitle: 'Спец-аналитика TikTok Ленты',
+      ttLensDesc: 'Просмотры, конверсия в лайки, поисковые запросы и залипания на @авторах',
+      ttWatchedVideos: 'Просмотрено видео',
+      ttLikes: 'Лайков',
+      ttSearches: 'Поисковых запросов',
+      ttLikeRate: 'Конверсия в лайк',
+      ttUniqueCreators: 'Замечено @авторов',
+      ttTopCreators: 'Топ @авторов',
+      ttBingeStreaks: 'Серии на одном авторе',
     },
     sql: {
       title: 'SQL-консоль DuckDB-Wasm',
@@ -516,6 +922,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       rowsReturned: 'Строк',
       truncatedNotice: 'Показаны первые 500 строк для плавности интерфейса.',
       emptyResult: 'Запрос выполнен успешно и вернул 0 строк.',
+      recommendedBadge: 'РЕКОМЕНДУЕТСЯ',
       presets: {
         monologues: 'Топ-10 длинных монологов',
         lateNight: 'Ночная активность (00:00–05:00)',
@@ -523,6 +930,10 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
         hourlyVolume: 'Объём и слова по часам',
         emojis: 'Лидерборд эмодзи',
         responseTimes: 'Медианное время ответа',
+        antigravityTools: 'Топ тулзов агентов (Antigravity / Claude)',
+        antigravityTokens: 'Токены и KV-кэш агентов по сессиям',
+        spotifyArtists: 'Топ артистов и часов Spotify',
+        youtubeChannels: 'Топ каналов YouTube / TikTok',
       },
     },
     networkModal: {
@@ -557,7 +968,22 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       topWords: 'Топ-слова',
       topEmojis: 'Главные эмодзи',
       topDomains: 'Топ-домены',
+      topArtists: 'Топ-артисты',
+      topChannels: 'Топ-каналы',
+      topCreators: 'Топ-авторы',
       gptPolite: 'Вежливые промпты',
+      agCacheTools: 'KV-кэш / Тулзы',
+      topArtist: 'Топ-артист',
+      listeningSummary: 'Часы / Скипы',
+      topChannel: 'Топ-канал',
+      ytFormats: 'Каналы / Shorts',
+      topCreator: 'Топ-@автор',
+      ttEngagement: 'Лайки / Поиск',
+      topDomain: 'Топ-домен',
+      longestHole: 'Длинная серия',
+      aiCodeDensity: 'Доля с кодом',
+      agCacheHit: 'Попадание в кэш',
+      agToolsCount: 'Вызовов тулзов',
     },
   },
 };

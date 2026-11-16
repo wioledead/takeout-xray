@@ -1,207 +1,594 @@
-import { Clock, Flame, Moon, Repeat, Zap } from 'lucide-react';
+import {
+  Clock,
+  Flame,
+  Globe,
+  Moon,
+  Music,
+  PlayCircle,
+  Repeat,
+  Terminal,
+  Zap,
+} from 'lucide-react';
 import { useI18n } from '../i18n/useI18n';
-import type { BehaviorMetrics, ExportFormat } from '../types/domain';
-import { formatLatency } from '../utils/format';
+import type { BehaviorMetrics, ExportFormat, LexiconMetrics } from '../types/domain';
+import { formatLatency, formatLocalDate } from '../utils/format';
+import { getFormatProfile } from '../utils/formatProfile';
 
 interface BehaviorTabProps {
   format: ExportFormat;
   behavior: BehaviorMetrics;
+  lexicon?: LexiconMetrics;
 }
 
-export function BehaviorTab({ format, behavior }: BehaviorTabProps) {
-  const { t } = useI18n();
-  const maxHourly = behavior.hourlyBreakdown.reduce((m, h) => Math.max(m, h.count), 0) || 1;
-  const maxLatency = behavior.replyLatency.reduce((m, r) => Math.max(m, r.medianLatencySec), 0) || 1;
+const INITIATOR_COLORS = ['#00FF9D', '#38BDF8', '#F59E0B', '#A855F7', '#EC4899'];
 
-  const initiatorColors = ['#00FF9D', '#38BDF8', '#F59E0B', '#A855F7', '#EC4899'];
+export function BehaviorTab({ format, behavior, lexicon }: BehaviorTabProps) {
+  const { t } = useI18n();
+  const profile = getFormatProfile(format);
+  const maxHourly = behavior.hourlyBreakdown.reduce((m, h) => Math.max(m, h.count), 0) || 1;
+  const maxLatency =
+    behavior.replyLatency.reduce((m, r) => Math.max(m, r.medianLatencySec), 0) || 1;
+
+  const nightOwlCard = (
+    <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+      <div className="flex items-center gap-2 text-[#F59E0B]">
+        <Moon className="h-4 w-4" />
+        <h2 className="font-mono text-sm font-bold text-slate-100">{t.behavior.nightOwlScore}</h2>
+      </div>
+      <p className="mt-1 text-xs text-slate-400">{t.behavior.nightOwlDesc}</p>
+      <div className="mt-4 font-mono text-4xl font-bold text-[#F59E0B]">{behavior.nightOwlPct}%</div>
+    </div>
+  );
+
+  const peakHourCard = (
+    <div className="flex flex-col justify-between rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+      <div className="flex items-center justify-between text-xs text-slate-400">
+        <span className="font-mono text-sm font-bold text-slate-100">{t.behavior.peakHour}</span>
+        <Flame className="h-4 w-4 text-[#00FF9D]" />
+      </div>
+      <div className="mt-4 font-mono text-3xl font-bold text-[#00FF9D]">
+        {String(behavior.peakHour).padStart(2, '0')}:00 –{' '}
+        {String((behavior.peakHour + 1) % 24).padStart(2, '0')}:00
+      </div>
+    </div>
+  );
+
+  const latencySectionTitle =
+    profile.archetype === 'messenger' ? t.behavior.latencyTitle : t.behavior.turnaroundTitle;
+  const latencySectionDesc =
+    profile.archetype === 'messenger' ? t.behavior.latencyDesc : t.behavior.turnaroundDesc;
+
+  const monologueSectionTitle =
+    profile.archetype === 'messenger' ? t.behavior.monologueTitle : t.behavior.followUpTitle;
+  const monologueSectionDesc =
+    profile.archetype === 'messenger' ? t.behavior.monologueDesc : t.behavior.followUpDesc;
 
   return (
     <div className="space-y-6">
-      {format === 'chrome_history' && (
-        <div className="rounded-lg border border-[#38BDF8]/40 bg-[#38BDF8]/10 px-4 py-3 font-mono text-xs text-[#38BDF8]">
-          {t.behavior.chromeBehaviorNote}
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5 lg:col-span-2">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-[#00FF9D]" />
-            <h2 className="font-mono text-sm font-bold text-slate-100">
-              {t.behavior.initiatorTitle}
-            </h2>
-          </div>
-          <p className="mt-0.5 text-xs text-slate-400">{t.behavior.initiatorDesc}</p>
-
-          {behavior.initiators.length === 0 ? (
-            <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
-              {t.behavior.noInitiatorData}
-            </div>
-          ) : (
-            <>
-              <div className="mt-4 flex h-4 w-full overflow-hidden rounded-full border border-[#1E293B] bg-[#07090D]">
-                {behavior.initiators.slice(0, 5).map((item, idx) => (
-                  <div
-                    key={item.senderName}
-                    style={{
-                      width: `${item.sharePct}%`,
-                      backgroundColor: initiatorColors[idx % initiatorColors.length],
-                    }}
-                    title={`${item.senderName}: ${item.sharePct}%`}
-                    className="h-full transition-all"
-                  />
-                ))}
-              </div>
-
-              <div className="mt-4 space-y-2.5">
-                {behavior.initiators.slice(0, 6).map((item, idx) => (
-                  <div
-                    key={item.senderName}
-                    className="flex items-center justify-between rounded border border-[#1E293B]/70 bg-[#07090D] px-3 py-2 font-mono text-xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: initiatorColors[idx % initiatorColors.length] }}
-                      />
-                      <span className="text-slate-200">{item.senderName}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-slate-400">
-                        {item.sessionsStarted.toLocaleString()} {t.behavior.sessionsStarted}
-                      </span>
-                      <span className="w-12 text-right font-bold text-[#00FF9D]">{item.sharePct}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="flex flex-col justify-between gap-4 rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
-          <div>
-            <div className="flex items-center gap-2 text-[#F59E0B]">
-              <Moon className="h-4 w-4" />
+      {profile.hasInitiators ? (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5 lg:col-span-2">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-[#00FF9D]" />
               <h2 className="font-mono text-sm font-bold text-slate-100">
-                {t.behavior.nightOwlScore}
+                {t.behavior.initiatorTitle}
               </h2>
             </div>
-            <p className="mt-1 text-xs text-slate-400">{t.behavior.nightOwlDesc}</p>
-            <div className="mt-4 font-mono text-4xl font-bold text-[#F59E0B]">
-              {behavior.nightOwlPct}%
-            </div>
-          </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.initiatorDesc}</p>
 
-          <div className="rounded-lg border border-[#1E293B] bg-[#07090D] p-4">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>{t.behavior.peakHour}</span>
-              <Flame className="h-4 w-4 text-[#00FF9D]" />
-            </div>
-            <div className="mt-1 font-mono text-2xl font-bold text-[#00FF9D]">
-              {String(behavior.peakHour).padStart(2, '0')}:00 –{' '}
-              {String((behavior.peakHour + 1) % 24).padStart(2, '0')}:00
-            </div>
-          </div>
-        </div>
-      </div>
+            {behavior.initiators.length === 0 ? (
+              <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
+                {t.behavior.noInitiatorData}
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 flex h-4 w-full overflow-hidden rounded-full border border-[#1E293B] bg-[#07090D]">
+                  {behavior.initiators.slice(0, 5).map((item, idx) => (
+                    <div
+                      key={item.senderName}
+                      style={{
+                        width: `${item.sharePct}%`,
+                        backgroundColor: INITIATOR_COLORS[idx % INITIATOR_COLORS.length],
+                      }}
+                      title={`${item.senderName}: ${item.sharePct}%`}
+                      className="h-full transition-all"
+                    />
+                  ))}
+                </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[#38BDF8]" />
-            <h2 className="font-mono text-sm font-bold text-slate-100">
-              {t.behavior.latencyTitle}
-            </h2>
-          </div>
-          <p className="mt-0.5 text-xs text-slate-400">{t.behavior.latencyDesc}</p>
-
-          {behavior.replyLatency.length === 0 ? (
-            <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
-              {t.behavior.noReplyData}
-            </div>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {behavior.replyLatency.map((item) => {
-                const widthPct = Math.max(8, Math.round((item.medianLatencySec / maxLatency) * 100));
-                return (
-                  <div
-                    key={item.senderName}
-                    className="rounded border border-[#1E293B]/70 bg-[#07090D] p-3"
-                  >
-                    <div className="flex items-center justify-between font-mono text-xs">
-                      <span className="font-medium text-slate-200">{item.senderName}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-slate-500">
-                          {item.replyCount.toLocaleString()} {t.behavior.repliesCount}
+                <div className="mt-4 space-y-2.5">
+                  {behavior.initiators.slice(0, 6).map((item, idx) => (
+                    <div
+                      key={item.senderName}
+                      className="flex items-center justify-between rounded border border-[#1E293B]/70 bg-[#07090D] px-3 py-2 font-mono text-xs"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{
+                            backgroundColor: INITIATOR_COLORS[idx % INITIATOR_COLORS.length],
+                          }}
+                        />
+                        <span className="text-slate-200">{item.senderName}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-slate-400">
+                          {item.sessionsStarted.toLocaleString()} {t.behavior.sessionsStarted}
                         </span>
-                        <span className="font-bold text-[#38BDF8]">
-                          {formatLatency(item.medianLatencySec)}
+                        <span className="w-12 text-right font-bold text-[#00FF9D]">
+                          {item.sharePct}%
                         </span>
                       </div>
                     </div>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
-                      <div
-                        className="h-full bg-[#38BDF8]"
-                        style={{ width: `${widthPct}%` }}
-                      />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-col justify-between gap-4">
+            {nightOwlCard}
+            {peakHourCard}
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {nightOwlCard}
+          {peakHourCard}
+        </div>
+      )}
+
+      {(profile.archetype === 'messenger' || profile.archetype === 'ai_chat') && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#38BDF8]" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">{latencySectionTitle}</h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{latencySectionDesc}</p>
+
+            {behavior.replyLatency.length === 0 ? (
+              <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
+                {t.behavior.noReplyData}
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {behavior.replyLatency.map((item) => {
+                  const widthPct = Math.max(
+                    8,
+                    Math.round((item.medianLatencySec / maxLatency) * 100),
+                  );
+                  return (
+                    <div
+                      key={item.senderName}
+                      className="rounded border border-[#1E293B]/70 bg-[#07090D] p-3"
+                    >
+                      <div className="flex items-center justify-between font-mono text-xs">
+                        <span className="font-medium text-slate-200">{item.senderName}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] text-slate-500">
+                            {item.replyCount.toLocaleString()} {t.behavior.repliesCount}
+                          </span>
+                          <span className="font-bold text-[#38BDF8]">
+                            {formatLatency(item.medianLatencySec)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                        <div className="h-full bg-[#38BDF8]" style={{ width: `${widthPct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2">
+              <Repeat className="h-4 w-4 text-[#00FF9D]" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {monologueSectionTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{monologueSectionDesc}</p>
+
+            {behavior.monologues.length === 0 ? (
+              <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
+                {t.behavior.noMonologueData}
+              </div>
+            ) : (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs">
+                  <thead className="border-b border-[#1E293B] text-[10px] uppercase text-slate-400">
+                    <tr>
+                      <th className="py-2 pr-3">{t.overview.senderCol}</th>
+                      <th className="px-3 py-2 text-right">{t.behavior.maxStreak}</th>
+                      <th className="px-3 py-2 text-right">{t.behavior.avgTurn}</th>
+                      <th className="py-2 pl-3 text-right">{t.behavior.monologues5Plus}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1E293B]/60">
+                    {behavior.monologues.map((m) => (
+                      <tr key={m.senderName} className="hover:bg-[#111822]">
+                        <td className="py-2.5 pr-3 text-slate-200">{m.senderName}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-[#00FF9D]">
+                          {m.maxStreak}
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-slate-300">{m.avgPerTurn}</td>
+                        <td className="py-2.5 pl-3 text-right text-[#F59E0B]">
+                          {m.monologues5Plus.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {profile.archetype === 'coding_agent' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#38BDF8]" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.turnaroundTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.turnaroundDesc}</p>
+
+            {behavior.replyLatency.length === 0 ? (
+              <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
+                {t.behavior.noReplyData}
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {behavior.replyLatency.map((item) => {
+                  const widthPct = Math.max(
+                    8,
+                    Math.round((item.medianLatencySec / maxLatency) * 100),
+                  );
+                  return (
+                    <div
+                      key={item.senderName}
+                      className="rounded border border-[#1E293B]/70 bg-[#07090D] p-3"
+                    >
+                      <div className="flex items-center justify-between font-mono text-xs">
+                        <span className="font-medium text-slate-200">{item.senderName}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[11px] text-slate-500">
+                            {item.replyCount.toLocaleString()} {t.behavior.repliesCount}
+                          </span>
+                          <span className="font-bold text-[#38BDF8]">
+                            {formatLatency(item.medianLatencySec)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                        <div className="h-full bg-[#38BDF8]" style={{ width: `${widthPct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#A855F7]">
+              <Terminal className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.agentToolsTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.agentToolsDesc}</p>
+
+            <div className="mt-4 space-y-2.5">
+              {(lexicon?.antigravityLens?.topTools ?? []).slice(0, 8).map((tool) => (
+                <div key={tool.toolName} className="font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-200">{tool.toolName}</span>
+                    <span className="text-[#A855F7]">
+                      {tool.calls.toLocaleString()} ({tool.sharePct}%)
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                    <div
+                      className="h-full bg-[#A855F7]"
+                      style={{ width: `${Math.min(100, tool.sharePct * 2)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {(!lexicon?.antigravityLens || lexicon.antigravityLens.topTools.length === 0) && (
+                <div className="rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-500">
+                  —
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {profile.archetype === 'media_video' && (lexicon?.youtubeLens || lexicon?.tiktokLens) && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#F43F5E]">
+              <PlayCircle className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.mediaBingeTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.mediaBingeDesc}</p>
+
+            <div className="mt-4 space-y-2">
+              {(lexicon.youtubeLens?.bingeStreaks ?? lexicon.tiktokLens?.bingeStreaks ?? [])
+                .slice(0, 6)
+                .map((bs, idx) => (
+                  <div
+                    key={`${bs.channel}-${bs.startTs}-${idx}`}
+                    className="flex items-center justify-between rounded border border-[#1E293B]/70 bg-[#07090D] px-3 py-2 font-mono text-xs"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <div className="truncate text-slate-200">{bs.channel}</div>
+                      <div className="text-[10px] text-slate-500">
+                        {formatLocalDate(bs.startTs)}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded border border-[#F43F5E]/40 bg-[#F43F5E]/10 px-2 py-0.5 text-[#F43F5E]">
+                      {bs.streakCount} {t.lexicon.ytStreakUnit}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#EC4899]">
+              <Zap className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.mediaEngagementTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.mediaEngagementDesc}</p>
+
+            {lexicon.youtubeLens && (
+              <div className="mt-4 space-y-3 font-mono text-xs">
+                <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                  <div className="flex justify-between text-slate-300">
+                    <span>{t.lexicon.ytShortsShare}</span>
+                    <span className="font-bold text-[#F59E0B]">{lexicon.youtubeLens.shortsPct}%</span>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                    <div
+                      className="h-full bg-[#F59E0B]"
+                      style={{ width: `${Math.min(100, lexicon.youtubeLens.shortsPct)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                    <div className="text-[10px] text-slate-400">{t.lexicon.ytTotalVideos}</div>
+                    <div className="mt-1 text-lg font-bold text-slate-100">
+                      {lexicon.youtubeLens.totalVideos.toLocaleString()}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                    <div className="text-[10px] text-slate-400">{t.lexicon.ytUniqueChannels}</div>
+                    <div className="mt-1 text-lg font-bold text-[#38BDF8]">
+                      {lexicon.youtubeLens.uniqueChannels.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-        <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
-          <div className="flex items-center gap-2">
-            <Repeat className="h-4 w-4 text-[#00FF9D]" />
-            <h2 className="font-mono text-sm font-bold text-slate-100">
-              {t.behavior.monologueTitle}
-            </h2>
+            {lexicon.tiktokLens && (
+              <div className="mt-4 space-y-3 font-mono text-xs">
+                <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                  <div className="flex justify-between text-slate-300">
+                    <span>{t.lexicon.ttLikeRate}</span>
+                    <span className="font-bold text-[#EC4899]">{lexicon.tiktokLens.likeRatePct}%</span>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                    <div
+                      className="h-full bg-[#EC4899]"
+                      style={{ width: `${Math.min(100, lexicon.tiktokLens.likeRatePct)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                    <div className="text-[10px] text-slate-400">{t.lexicon.ttWatchedVideos}</div>
+                    <div className="mt-1 text-base font-bold text-slate-100">
+                      {lexicon.tiktokLens.totalVideos.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                    <div className="text-[10px] text-slate-400">{t.lexicon.ttLikes}</div>
+                    <div className="mt-1 text-base font-bold text-[#EC4899]">
+                      {lexicon.tiktokLens.totalLikes.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                    <div className="text-[10px] text-slate-400">{t.lexicon.ttSearches}</div>
+                    <div className="mt-1 text-base font-bold text-[#38BDF8]">
+                      {lexicon.tiktokLens.totalSearches.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <p className="mt-0.5 text-xs text-slate-400">{t.behavior.monologueDesc}</p>
-
-          {behavior.monologues.length === 0 ? (
-            <div className="mt-6 rounded border border-[#1E293B] bg-[#07090D] p-4 font-mono text-xs text-slate-400">
-              {t.behavior.noMonologueData}
-            </div>
-          ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left font-mono text-xs">
-                <thead className="border-b border-[#1E293B] text-[10px] uppercase text-slate-400">
-                  <tr>
-                    <th className="py-2 pr-3">{t.overview.senderCol}</th>
-                    <th className="px-3 py-2 text-right">{t.behavior.maxStreak}</th>
-                    <th className="px-3 py-2 text-right">{t.behavior.avgTurn}</th>
-                    <th className="py-2 pl-3 text-right">{t.behavior.monologues5Plus}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1E293B]/60">
-                  {behavior.monologues.map((m) => (
-                    <tr key={m.senderName} className="hover:bg-[#111822]">
-                      <td className="py-2.5 pr-3 text-slate-200">{m.senderName}</td>
-                      <td className="px-3 py-2.5 text-right font-bold text-[#00FF9D]">
-                        {m.maxStreak}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-slate-300">{m.avgPerTurn}</td>
-                      <td className="py-2.5 pl-3 text-right text-[#F59E0B]">
-                        {m.monologues5Plus.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
-      </div>
+      )}
+
+      {profile.archetype === 'media_audio' && lexicon?.spotifyLens && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#10B981]">
+              <Music className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.spotifyArtistsTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.spotifyArtistsDesc}</p>
+
+            <div className="mt-4 space-y-2.5">
+              {(() => {
+                const topArtists = lexicon.spotifyLens.topArtists.slice(0, 6);
+                const maxMetric = topArtists.reduce(
+                  (m, a) => Math.max(m, a.minutes > 0 ? a.minutes : a.plays),
+                  0,
+                ) || 1;
+                return topArtists.map((artist, idx) => {
+                  const val = artist.minutes > 0 ? artist.minutes : artist.plays;
+                  const widthPct = Math.max(8, Math.round((val / maxMetric) * 100));
+                  return (
+                    <div key={artist.name} className="font-mono text-xs">
+                      <div className="flex justify-between">
+                        <span className="truncate text-slate-200">
+                          {idx + 1}. {artist.name}
+                        </span>
+                        <span className="text-[#10B981]">
+                          {artist.minutes > 0
+                            ? `${artist.minutes.toLocaleString()} ${t.lexicon.spotifyMinsUnit}`
+                            : `${artist.plays.toLocaleString()} plays`}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                        <div className="h-full bg-[#10B981]" style={{ width: `${widthPct}%` }} />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#38BDF8]">
+              <Repeat className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.spotifyHabitsTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.spotifyHabitsDesc}</p>
+
+            <div className="mt-4 space-y-3 font-mono text-xs">
+              <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                <div className="flex justify-between text-slate-300">
+                  <span>{t.lexicon.spotifySkipRate}</span>
+                  <span className="font-bold text-[#F59E0B]">{lexicon.spotifyLens.skipPct}%</span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                  <div
+                    className="h-full bg-[#F59E0B]"
+                    style={{ width: `${Math.min(100, lexicon.spotifyLens.skipPct)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                <div className="flex justify-between text-slate-300">
+                  <span>{t.lexicon.spotifyShuffleRate}</span>
+                  <span className="font-bold text-[#A855F7]">{lexicon.spotifyLens.shufflePct}%</span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                  <div
+                    className="h-full bg-[#A855F7]"
+                    style={{ width: `${Math.min(100, lexicon.spotifyLens.shufflePct)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                  <div className="text-[10px] text-slate-400">{t.lexicon.spotifyHours}</div>
+                  <div className="mt-1 text-lg font-bold text-[#10B981]">
+                    {lexicon.spotifyLens.totalHours.toLocaleString()}h
+                  </div>
+                </div>
+                <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                  <div className="text-[10px] text-slate-400">{t.lexicon.spotifyUniqueArtists}</div>
+                  <div className="mt-1 text-lg font-bold text-slate-100">
+                    {lexicon.spotifyLens.uniqueArtists} / {lexicon.spotifyLens.uniqueTracks}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {profile.archetype === 'browser' && lexicon?.chromeLens && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#F59E0B]">
+              <Globe className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.browserTransitionsTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.browserTransitionsDesc}</p>
+
+            <div className="mt-4 space-y-2.5">
+              {lexicon.chromeLens.transitions.map((tr) => (
+                <div key={tr.transition} className="font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#38BDF8]">{tr.transition}</span>
+                    <span className="text-slate-200">
+                      {tr.count.toLocaleString()} ({tr.sharePct}%)
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                    <div
+                      className="h-full bg-[#38BDF8]"
+                      style={{ width: `${Math.min(100, tr.sharePct)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#F59E0B]">
+              <Repeat className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.browserRabbitHolesTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.browserRabbitHolesDesc}</p>
+
+            <div className="mt-4 space-y-2">
+              {lexicon.chromeLens.rabbitHoles.slice(0, 6).map((rh, idx) => (
+                <div
+                  key={`${rh.domain}-${rh.startTs}-${idx}`}
+                  className="flex items-center justify-between rounded border border-[#1E293B]/70 bg-[#07090D] px-3 py-2 font-mono text-xs"
+                >
+                  <div>
+                    <div className="text-slate-200">{rh.domain}</div>
+                    <div className="text-[10px] text-slate-500">
+                      {formatLocalDate(rh.startTs)}
+                    </div>
+                  </div>
+                  <span className="rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-2 py-0.5 text-[#F59E0B]">
+                    {rh.streakCount} {t.lexicon.streak}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
         <div>
-          <h2 className="font-mono text-sm font-bold text-slate-100">
-            {t.behavior.circadianTitle}
-          </h2>
+          <h2 className="font-mono text-sm font-bold text-slate-100">{t.behavior.circadianTitle}</h2>
           <p className="text-xs text-slate-400">{t.behavior.circadianDesc}</p>
         </div>
 

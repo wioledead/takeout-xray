@@ -10,6 +10,7 @@ import { ShareCardModal } from './components/ShareCardModal';
 import { SqlConsoleTab } from './components/SqlConsoleTab';
 import { useI18n } from './i18n/useI18n';
 import type { DashboardSnapshot, DemoKind, IngestionProgress, TabId } from './types/domain';
+import type { IngestFileEntry } from './types/rpc';
 import { networkGuard } from './utils/networkGuard';
 
 export function App() {
@@ -43,20 +44,22 @@ export function App() {
     };
   }, []);
 
-  const handleSelectFile = async (file: File) => {
+  const handleSelectFiles = async (entries: IngestFileEntry[]) => {
+    if (entries.length === 0) return;
     setIsLoading(true);
     setErrorMessage(null);
+    const totalBytes = entries.reduce((sum, e) => sum + (e.zipEntrySize ?? e.file.size), 0);
     setProgress({
       phase: 'detecting',
       bytesRead: 0,
-      totalBytes: file.size,
+      totalBytes,
       rowsIngested: 0,
       threadsFound: 0,
       elapsedMs: 0,
     });
 
     try {
-      const res = await xrayClient.ingestFile(file);
+      const res = await xrayClient.ingestFiles(entries);
       setSnapshot(res.snapshot);
       setActiveTab('overview');
     } catch (err) {
@@ -135,7 +138,7 @@ export function App() {
       {!snapshot ? (
         <main>
           <DropZoneHero
-            onSelectFile={(f) => void handleSelectFile(f)}
+            onSelectFiles={(entries) => void handleSelectFiles(entries)}
             onSelectDemo={(d) => void handleSelectDemo(d)}
             progress={progress}
             isLoading={isLoading}
@@ -170,14 +173,27 @@ export function App() {
           </nav>
 
           {activeTab === 'overview' && (
-            <OverviewTab format={snapshot.format} overview={snapshot.overview} />
+            <OverviewTab
+              format={snapshot.format}
+              overview={snapshot.overview}
+              lexicon={snapshot.lexicon}
+            />
           )}
           {activeTab === 'behavior' && (
-            <BehaviorTab format={snapshot.format} behavior={snapshot.behavior} />
+            <BehaviorTab
+              format={snapshot.format}
+              behavior={snapshot.behavior}
+              lexicon={snapshot.lexicon}
+            />
           )}
-          {activeTab === 'lexicon' && <LexiconTab lexicon={snapshot.lexicon} />}
+          {activeTab === 'lexicon' && (
+            <LexiconTab format={snapshot.format} lexicon={snapshot.lexicon} />
+          )}
           {activeTab === 'sql' && (
-            <SqlConsoleTab onRunSql={(query) => xrayClient.runSql(query)} />
+            <SqlConsoleTab
+              format={snapshot.format}
+              onRunSql={(query) => xrayClient.runSql(query)}
+            />
           )}
         </main>
       )}

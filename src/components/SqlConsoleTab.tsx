@@ -9,10 +9,12 @@ import {
 } from 'lucide-react';
 import { getLocalTzOffsetMs } from '../client/xrayClient';
 import { useI18n } from '../i18n/useI18n';
-import type { SqlCellValue, SqlQueryResult } from '../types/domain';
+import type { ExportFormat, SqlCellValue, SqlQueryResult } from '../types/domain';
+import { getFormatProfile } from '../utils/formatProfile';
 import { getSqlPresets } from '../worker/queries.sql';
 
 interface SqlConsoleTabProps {
+  format?: ExportFormat;
   onRunSql: (sql: string) => Promise<SqlQueryResult>;
 }
 
@@ -49,6 +51,39 @@ const SCHEMA_TABLES = [
     ],
   },
   {
+    name: 'antigravity_steps',
+    columns: [
+      { col: 'step_id', type: 'VARCHAR' },
+      { col: 'thread_id', type: 'VARCHAR' },
+      { col: 'step_index', type: 'INTEGER' },
+      { col: 'step_type', type: 'VARCHAR' },
+      { col: 'ts_ms', type: 'BIGINT' },
+      { col: 'input_tokens', type: 'BIGINT' },
+      { col: 'cache_read_tokens', type: 'BIGINT' },
+      { col: 'output_tokens', type: 'BIGINT' },
+      { col: 'thinking_chars', type: 'INTEGER' },
+      { col: 'reply_chars', type: 'INTEGER' },
+      { col: 'tool_call_count', type: 'INTEGER' },
+      { col: 'tool_names', type: 'VARCHAR[]' },
+    ],
+  },
+  {
+    name: 'media_events',
+    columns: [
+      { col: 'media_id', type: 'VARCHAR' },
+      { col: 'thread_id', type: 'VARCHAR' },
+      { col: 'source_type', type: 'VARCHAR' },
+      { col: 'ts_ms', type: 'BIGINT' },
+      { col: 'creator_name', type: 'VARCHAR' },
+      { col: 'item_title', type: 'VARCHAR' },
+      { col: 'album_or_sub', type: 'VARCHAR' },
+      { col: 'ms_played', type: 'BIGINT' },
+      { col: 'is_skipped', type: 'BOOLEAN' },
+      { col: 'is_shuffle', type: 'BOOLEAN' },
+      { col: 'platform', type: 'VARCHAR' },
+    ],
+  },
+  {
     name: 'stopwords',
     columns: [{ col: 'word', type: 'VARCHAR' }],
   },
@@ -69,9 +104,19 @@ function escapeCsvField(val: SqlCellValue): string {
   return str;
 }
 
-export function SqlConsoleTab({ onRunSql }: SqlConsoleTabProps) {
+export function SqlConsoleTab({ format, onRunSql }: SqlConsoleTabProps) {
   const { t } = useI18n();
-  const presets = getSqlPresets(getLocalTzOffsetMs());
+  const rawPresets = getSqlPresets(getLocalTzOffsetMs());
+  const preferredIds = format ? getFormatProfile(format).preferredSqlPresetIds : [];
+  const preferredSet = new Set(preferredIds);
+  const presets = [...rawPresets].sort((a, b) => {
+    const aIdx = preferredIds.indexOf(a.id);
+    const bIdx = preferredIds.indexOf(b.id);
+    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    if (aIdx !== -1) return -1;
+    if (bIdx !== -1) return 1;
+    return 0;
+  });
   const [sql, setSql] = useState(presets[0].sql);
   const [result, setResult] = useState<SqlQueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -143,19 +188,29 @@ export function SqlConsoleTab({ onRunSql }: SqlConsoleTabProps) {
               {t.sql.presetsTitle}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {presets.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => {
-                    setSql(preset.sql);
-                    void execute(preset.sql);
-                  }}
-                  className="rounded border border-[#1E293B] bg-[#07090D] px-2.5 py-1 font-mono text-[11px] text-slate-300 transition hover:border-[#38BDF8]/60 hover:text-[#38BDF8] cursor-pointer"
-                >
-                  {t.sql.presets[preset.id]}
-                </button>
-              ))}
+              {presets.map((preset) => {
+                const isRecommended = preferredSet.has(preset.id);
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      setSql(preset.sql);
+                      void execute(preset.sql);
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition cursor-pointer ${
+                      isRecommended
+                        ? 'border-[#00FF9D]/40 bg-[#00FF9D]/5 text-slate-200 hover:border-[#00FF9D]/80 hover:text-[#00FF9D]'
+                        : 'border-[#1E293B] bg-[#07090D] text-slate-400 hover:border-[#38BDF8]/60 hover:text-[#38BDF8]'
+                    }`}
+                  >
+                    {isRecommended && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#00FF9D]" />
+                    )}
+                    <span>{t.sql.presets[preset.id]}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

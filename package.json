@@ -13,6 +13,7 @@
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.29.0",
     "@streamparser/json": "^0.0.22",
+    "@zip.js/zip.js": "^2.25.0",
     "html-to-image": "^1.11.11",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",

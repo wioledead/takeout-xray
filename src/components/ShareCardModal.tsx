@@ -170,7 +170,13 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                 <div className="mt-4 grid grid-cols-3 gap-3">
                   <div className="rounded border border-[#1E293B] bg-[#0D1117] p-3">
                     <div className="text-[10px] uppercase text-slate-400">
-                      {format === 'chrome_history' ? t.overview.totalVisits : t.overview.totalEvents}
+                      {format === 'chrome_history'
+                        ? t.overview.totalVisits
+                        : format === 'spotify'
+                          ? t.overview.totalStreams
+                          : format === 'youtube' || format === 'tiktok'
+                            ? t.overview.totalVideosWatched
+                            : t.overview.totalEvents}
                     </div>
                     <div className="mt-1 font-mono text-xl font-bold text-[#00FF9D]">
                       {overview.totalEvents.toLocaleString()}
@@ -178,10 +184,22 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                   </div>
                   <div className="rounded border border-[#1E293B] bg-[#0D1117] p-3">
                     <div className="text-[10px] uppercase text-slate-400">
-                      {t.overview.totalWords}
+                      {format === 'spotify' && lexicon.spotifyLens
+                        ? t.lexicon.spotifyHours
+                        : format === 'youtube' && lexicon.youtubeLens
+                          ? t.lexicon.ytUniqueChannels
+                          : format === 'tiktok' && lexicon.tiktokLens
+                            ? t.lexicon.ttLikes
+                            : t.overview.totalWords}
                     </div>
                     <div className="mt-1 font-mono text-xl font-bold text-[#38BDF8]">
-                      {overview.totalWords.toLocaleString()}
+                      {format === 'spotify' && lexicon.spotifyLens
+                        ? `${lexicon.spotifyLens.totalHours.toLocaleString()}h`
+                        : format === 'youtube' && lexicon.youtubeLens
+                          ? lexicon.youtubeLens.uniqueChannels.toLocaleString()
+                          : format === 'tiktok' && lexicon.tiktokLens
+                            ? lexicon.tiktokLens.totalLikes.toLocaleString()
+                            : overview.totalWords.toLocaleString()}
                     </div>
                   </div>
                   <div className="rounded border border-[#1E293B] bg-[#0D1117] p-3">
@@ -196,19 +214,75 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
 
                 <div className="mt-3 grid grid-cols-2 gap-3 font-mono">
                   <div className="rounded border border-[#1E293B] bg-[#0D1117] p-3">
-                    <div className="text-[10px] text-slate-400">{t.shareModal.topInitiator}</div>
+                    <div className="text-[10px] text-slate-400">
+                      {lexicon.spotifyLens
+                        ? t.shareModal.topArtist
+                        : lexicon.youtubeLens
+                          ? t.shareModal.topChannel
+                          : lexicon.tiktokLens
+                            ? t.shareModal.topCreator
+                            : lexicon.chromeLens
+                              ? t.shareModal.topDomain
+                              : lexicon.antigravityLens
+                                ? t.shareModal.agCacheHit
+                                : lexicon.chatgptLens
+                                  ? t.shareModal.aiCodeDensity
+                                  : t.shareModal.topInitiator}
+                    </div>
                     <div className="mt-1 truncate text-sm font-bold text-slate-100">
-                      {topInitiator
-                        ? `${anonymizeName(topInitiator.senderName)} (${topInitiator.sharePct}%)`
-                        : '—'}
+                      {lexicon.spotifyLens?.topArtists[0]
+                        ? `${anonymizeName(lexicon.spotifyLens.topArtists[0].name)} (${
+                            lexicon.spotifyLens.topArtists[0].minutes > 0
+                              ? `${lexicon.spotifyLens.topArtists[0].minutes}m`
+                              : lexicon.spotifyLens.topArtists[0].plays
+                          })`
+                        : lexicon.youtubeLens?.topChannels[0]
+                          ? `${anonymizeName(lexicon.youtubeLens.topChannels[0].channel)} (${lexicon.youtubeLens.topChannels[0].sharePct}%)`
+                          : lexicon.tiktokLens?.topCreators[0]
+                            ? `${anonymizeName(lexicon.tiktokLens.topCreators[0].creator)} (${lexicon.tiktokLens.topCreators[0].sharePct}%)`
+                            : lexicon.chromeLens?.topDomains[0]
+                              ? `${lexicon.chromeLens.topDomains[0].domain} (${lexicon.chromeLens.topDomains[0].sharePct}%)`
+                              : lexicon.antigravityLens
+                                ? `${lexicon.antigravityLens.cacheHitPct}%`
+                                : lexicon.chatgptLens
+                                  ? `${lexicon.chatgptLens.codeBlockPct}%`
+                                  : topInitiator
+                                    ? `${anonymizeName(topInitiator.senderName)} (${topInitiator.sharePct}%)`
+                                    : '—'}
                     </div>
                   </div>
                   <div className="rounded border border-[#1E293B] bg-[#0D1117] p-3">
-                    <div className="text-[10px] text-slate-400">{t.shareModal.replySpeed}</div>
+                    <div className="text-[10px] text-slate-400">
+                      {lexicon.spotifyLens
+                        ? t.shareModal.listeningSummary
+                        : lexicon.youtubeLens
+                          ? t.shareModal.ytFormats
+                          : lexicon.tiktokLens
+                            ? t.shareModal.ttEngagement
+                            : lexicon.chromeLens
+                              ? t.shareModal.longestHole
+                              : lexicon.antigravityLens
+                                ? t.shareModal.agToolsCount
+                                : lexicon.chatgptLens
+                                  ? t.shareModal.gptPolite
+                                  : t.shareModal.replySpeed}
+                    </div>
                     <div className="mt-1 truncate text-sm font-bold text-[#38BDF8]">
-                      {fastestResponder
-                        ? `${anonymizeName(fastestResponder.senderName)} · ${formatLatency(fastestResponder.medianLatencySec)}`
-                        : '—'}
+                      {lexicon.spotifyLens
+                        ? `${lexicon.spotifyLens.totalHours}h · ${lexicon.spotifyLens.skipPct}% skip`
+                        : lexicon.youtubeLens
+                          ? `${lexicon.youtubeLens.uniqueChannels} ch · ${lexicon.youtubeLens.shortsPct}% Shorts`
+                          : lexicon.tiktokLens
+                            ? `${lexicon.tiktokLens.likeRatePct}% likes · ${lexicon.tiktokLens.totalSearches} qry`
+                            : lexicon.chromeLens?.rabbitHoles[0]
+                              ? `${lexicon.chromeLens.rabbitHoles[0].domain} · ${lexicon.chromeLens.rabbitHoles[0].streakCount}`
+                              : lexicon.antigravityLens
+                                ? `${lexicon.antigravityLens.toolExecutions.toLocaleString()} (${lexicon.antigravityLens.topTools[0]?.toolName ?? '—'})`
+                                : lexicon.chatgptLens
+                                  ? `${lexicon.chatgptLens.politePromptPct}%`
+                                  : fastestResponder
+                                    ? `${anonymizeName(fastestResponder.senderName)} · ${formatLatency(fastestResponder.medianLatencySec)}`
+                                    : '—'}
                     </div>
                   </div>
                   <div className="rounded border border-[#1E293B] bg-[#0D1117] p-3">
@@ -280,7 +354,13 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                     <div className="text-[10px] uppercase text-slate-400">
                       {lexicon.chromeLens
                         ? t.shareModal.topDomains
-                        : t.shareModal.topEmojis}
+                        : lexicon.spotifyLens
+                          ? t.shareModal.topArtists
+                          : lexicon.youtubeLens
+                            ? t.shareModal.topChannels
+                            : lexicon.tiktokLens && lexicon.tiktokLens.topCreators.length > 0
+                              ? t.shareModal.topCreators
+                              : t.shareModal.topEmojis}
                     </div>
                     {lexicon.chromeLens ? (
                       <div className="mt-2 space-y-1">
@@ -292,6 +372,51 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                             <span className="text-[#F59E0B]">{d.visits}</span>
                           </div>
                         ))}
+                      </div>
+                    ) : lexicon.spotifyLens ? (
+                      <div className="mt-2 space-y-1">
+                        {lexicon.spotifyLens.topArtists.slice(0, 5).map((a, idx) => (
+                          <div key={a.name} className="flex justify-between">
+                            <span className="truncate text-slate-200">
+                              {idx + 1}. {anonymizeName(a.name)}
+                            </span>
+                            <span className="text-[#10B981]">
+                              {a.minutes > 0 ? `${a.minutes}m` : a.plays}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="pt-1 text-[11px] text-[#38BDF8]">
+                          {lexicon.spotifyLens.totalHours}h · {lexicon.spotifyLens.skipPct}% skip
+                        </div>
+                      </div>
+                    ) : lexicon.youtubeLens ? (
+                      <div className="mt-2 space-y-1">
+                        {lexicon.youtubeLens.topChannels.slice(0, 5).map((c, idx) => (
+                          <div key={c.channel} className="flex justify-between">
+                            <span className="truncate text-slate-200">
+                              {idx + 1}. {anonymizeName(c.channel)}
+                            </span>
+                            <span className="text-[#F43F5E]">{c.videos}</span>
+                          </div>
+                        ))}
+                        <div className="pt-1 text-[11px] text-[#F59E0B]">
+                          Shorts: {lexicon.youtubeLens.shortsPct}%
+                        </div>
+                      </div>
+                    ) : lexicon.tiktokLens && lexicon.tiktokLens.topCreators.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {lexicon.tiktokLens.topCreators.slice(0, 5).map((cr, idx) => (
+                          <div key={cr.creator} className="flex justify-between">
+                            <span className="truncate text-slate-200">
+                              {idx + 1}. {anonymizeName(cr.creator)}
+                            </span>
+                            <span className="text-[#EC4899]">{cr.videos}</span>
+                          </div>
+                        ))}
+                        <div className="pt-1 text-[11px] text-[#00FF9D]">
+                          ❤️ {lexicon.tiktokLens.totalLikes.toLocaleString()} (
+                          {lexicon.tiktokLens.likeRatePct}%)
+                        </div>
                       </div>
                     ) : (
                       <div className="mt-2 space-y-1.5">
@@ -313,6 +438,12 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                         {lexicon.chatgptLens && (
                           <div className="pt-1 text-[11px] text-[#38BDF8]">
                             {t.shareModal.gptPolite}: {lexicon.chatgptLens.politePromptPct}%
+                          </div>
+                        )}
+                        {lexicon.antigravityLens && (
+                          <div className="pt-1 text-[11px] text-[#A855F7]">
+                            {t.shareModal.agCacheTools}: {lexicon.antigravityLens.cacheHitPct}% ·{' '}
+                            {lexicon.antigravityLens.toolExecutions.toLocaleString()}
                           </div>
                         )}
                       </div>

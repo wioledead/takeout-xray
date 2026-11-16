@@ -7,6 +7,14 @@ export function formatLocalDate(ts: number | null | undefined): string {
   return `${year}-${month}-${day}`;
 }
 
+export function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export function formatLatency(sec: number | undefined): string {
   if (sec === undefined || !Number.isFinite(sec)) return '—';
   if (sec < 60) return `${Math.round(sec)}s`;

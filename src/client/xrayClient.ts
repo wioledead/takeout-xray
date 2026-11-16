@@ -5,7 +5,7 @@ import type {
   IngestionProgress,
   SqlQueryResult,
 } from '../types/domain';
-import type { WorkerPayloadMap, WorkerRequest, WorkerResponse } from '../types/rpc';
+import type { IngestFileEntry, WorkerPayloadMap, WorkerRequest, WorkerResponse } from '../types/rpc';
 
 interface PendingRpc {
   resolve: (payload: WorkerPayloadMap[WorkerRequest['type']]) => void;
@@ -102,6 +102,19 @@ export class XRayClient {
     return this.call<'INGEST_FILE'>({
       type: 'INGEST_FILE',
       file,
+      tzOffsetMs: getLocalTzOffsetMs(),
+    });
+  }
+
+  async ingestFiles(
+    entries: IngestFileEntry[],
+  ): Promise<{ format: ExportFormat; snapshot: DashboardSnapshot }> {
+    if (entries.length === 1 && !entries[0].relativePath) {
+      return this.ingestFile(entries[0].file);
+    }
+    return this.call<'INGEST_FILES'>({
+      type: 'INGEST_FILES',
+      entries,
       tzOffsetMs: getLocalTzOffsetMs(),
     });
   }

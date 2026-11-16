@@ -26,12 +26,43 @@ CREATE TABLE IF NOT EXISTS events (
   meta_subtype VARCHAR
 );
 
+CREATE TABLE IF NOT EXISTS antigravity_steps (
+  step_id VARCHAR NOT NULL,
+  thread_id VARCHAR NOT NULL,
+  step_index INTEGER NOT NULL,
+  step_type VARCHAR NOT NULL,
+  ts_ms BIGINT NOT NULL,
+  input_tokens BIGINT NOT NULL,
+  cache_read_tokens BIGINT NOT NULL,
+  output_tokens BIGINT NOT NULL,
+  thinking_chars INTEGER NOT NULL,
+  reply_chars INTEGER NOT NULL,
+  tool_call_count INTEGER NOT NULL,
+  tool_names VARCHAR[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media_events (
+  media_id VARCHAR NOT NULL,
+  thread_id VARCHAR NOT NULL,
+  source_type VARCHAR NOT NULL,
+  ts_ms BIGINT NOT NULL,
+  creator_name VARCHAR NOT NULL,
+  item_title VARCHAR NOT NULL,
+  album_or_sub VARCHAR,
+  ms_played BIGINT NOT NULL,
+  is_skipped BOOLEAN NOT NULL,
+  is_shuffle BOOLEAN NOT NULL,
+  platform VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS stopwords (
   word VARCHAR PRIMARY KEY
 );
 `;
 
 export const RESET_SESSION_TABLES_SQL = `
+DROP TABLE IF EXISTS media_events;
+DROP TABLE IF EXISTS antigravity_steps;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS threads;
 CREATE TABLE threads (
@@ -58,6 +89,33 @@ CREATE TABLE events (
   emojis VARCHAR[] NOT NULL,
   domain VARCHAR,
   meta_subtype VARCHAR
+);
+CREATE TABLE antigravity_steps (
+  step_id VARCHAR NOT NULL,
+  thread_id VARCHAR NOT NULL,
+  step_index INTEGER NOT NULL,
+  step_type VARCHAR NOT NULL,
+  ts_ms BIGINT NOT NULL,
+  input_tokens BIGINT NOT NULL,
+  cache_read_tokens BIGINT NOT NULL,
+  output_tokens BIGINT NOT NULL,
+  thinking_chars INTEGER NOT NULL,
+  reply_chars INTEGER NOT NULL,
+  tool_call_count INTEGER NOT NULL,
+  tool_names VARCHAR[] NOT NULL
+);
+CREATE TABLE media_events (
+  media_id VARCHAR NOT NULL,
+  thread_id VARCHAR NOT NULL,
+  source_type VARCHAR NOT NULL,
+  ts_ms BIGINT NOT NULL,
+  creator_name VARCHAR NOT NULL,
+  item_title VARCHAR NOT NULL,
+  album_or_sub VARCHAR,
+  ms_played BIGINT NOT NULL,
+  is_skipped BOOLEAN NOT NULL,
+  is_shuffle BOOLEAN NOT NULL,
+  platform VARCHAR
 );
 `;
 

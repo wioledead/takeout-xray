@@ -1,12 +1,30 @@
 import { useState } from 'react';
-import { Calendar, GitBranch, Hash, Image, Layers, MessageCircle } from 'lucide-react';
+import {
+  Calendar,
+  Compass,
+  Cpu,
+  Film,
+  GitBranch,
+  Globe,
+  Hash,
+  Heart,
+  Image,
+  Layers,
+  MessageCircle,
+  Music,
+  Search,
+  SkipForward,
+  Users,
+} from 'lucide-react';
 import { useI18n } from '../i18n/useI18n';
-import type { ExportFormat, OverviewMetrics } from '../types/domain';
+import type { ExportFormat, LexiconMetrics, OverviewMetrics } from '../types/domain';
 import { formatLocalDate } from '../utils/format';
+import { getFormatProfile } from '../utils/formatProfile';
 
 interface OverviewTabProps {
   format: ExportFormat;
   overview: OverviewMetrics;
+  lexicon?: LexiconMetrics;
 }
 
 function getHeatmapColor(count: number, maxCount: number): string {
@@ -18,8 +36,9 @@ function getHeatmapColor(count: number, maxCount: number): string {
   return '#00FF9D';
 }
 
-export function OverviewTab({ format, overview }: OverviewTabProps) {
+export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
   const { t } = useI18n();
+  const profile = getFormatProfile(format);
   const [hoveredCell, setHoveredCell] = useState<{
     dow: number;
     hour: number;
@@ -38,9 +57,73 @@ export function OverviewTab({ format, overview }: OverviewTabProps) {
   const firstDateStr = formatLocalDate(overview.firstEventTs);
   const lastDateStr = formatLocalDate(overview.lastEventTs);
 
+  const isAiChat = profile.archetype === 'ai_chat';
+  const isAgent = profile.archetype === 'coding_agent';
+  const hasServiceMetrics =
+    isAgent ||
+    profile.archetype === 'messenger' ||
+    format === 'tiktok';
+
+  const sp = lexicon?.spotifyLens;
+  const yt = lexicon?.youtubeLens;
+  const tt = lexicon?.tiktokLens;
+  const ch = lexicon?.chromeLens;
+
+  const thirdCard =
+    format === 'spotify' && sp
+      ? { label: t.lexicon.spotifyHours, value: `${sp.totalHours.toLocaleString()}h`, accent: 'text-[#10B981]', icon: Music }
+      : format === 'youtube' && yt
+        ? { label: t.lexicon.ytUniqueChannels, value: yt.uniqueChannels.toLocaleString(), accent: 'text-[#F43F5E]', icon: Users }
+        : format === 'tiktok' && tt
+          ? { label: t.lexicon.ttLikes, value: tt.totalLikes.toLocaleString(), accent: 'text-[#EC4899]', icon: Heart }
+          : format === 'chrome_history' && ch
+            ? { label: t.lexicon.chromeTransitions, value: (ch.transitions[0]?.transition ?? 'link').toUpperCase(), accent: 'text-[#38BDF8]', icon: Compass }
+            : { label: t.overview.totalWords, value: overview.totalWords.toLocaleString(), accent: 'text-slate-100', icon: Hash };
+
+  const fourthCard =
+    format === 'spotify' && sp
+      ? { label: t.lexicon.spotifySkipRate, value: `${sp.skipPct}%`, accent: 'text-[#F59E0B]', icon: SkipForward }
+      : format === 'youtube' && yt
+        ? { label: t.lexicon.ytShortsShare, value: `${yt.shortsPct}%`, accent: 'text-[#F59E0B]', icon: Film }
+        : format === 'tiktok' && tt
+          ? { label: t.lexicon.ttLikeRate, value: `${tt.likeRatePct}%`, accent: 'text-[#00FF9D]', icon: Heart }
+          : format === 'chrome_history' && ch?.topDomains[0]
+            ? { label: ch.topDomains[0].domain, value: `${ch.topDomains[0].sharePct}%`, accent: 'text-[#F59E0B]', icon: Globe }
+            : {
+                label: isAiChat
+                  ? t.overview.regeneratedBranches
+                  : isAgent
+                    ? t.overview.agentSteps
+                    : hasServiceMetrics
+                      ? t.overview.serviceEvents
+                      : t.overview.mediaAttachments,
+                value: (isAiChat
+                  ? overview.extraBranchCount
+                  : hasServiceMetrics
+                    ? overview.totalServiceEvents
+                    : overview.totalMedia
+                ).toLocaleString(),
+                accent: 'text-[#F59E0B]',
+                icon: isAiChat ? GitBranch : isAgent ? Cpu : Image,
+              };
+
+  const fifthCard =
+    format === 'spotify' && sp
+      ? { label: t.lexicon.spotifyUniqueArtists, value: sp.uniqueArtists.toLocaleString(), accent: 'text-slate-100', icon: Users }
+      : format === 'tiktok' && tt
+        ? { label: t.lexicon.ttSearches, value: tt.totalSearches.toLocaleString(), accent: 'text-[#38BDF8]', icon: Search }
+        : { label: t.overview.threadsCount, value: overview.totalThreads.toLocaleString(), accent: 'text-slate-100', icon: Layers };
+
   const kpiCards = [
     {
-      label: format === 'chrome_history' ? t.overview.totalVisits : t.overview.totalEvents,
+      label:
+        format === 'chrome_history'
+          ? t.overview.totalVisits
+          : format === 'spotify'
+            ? t.overview.totalStreams
+            : format === 'youtube' || format === 'tiktok'
+              ? t.overview.totalVideosWatched
+              : t.overview.totalEvents,
       value: overview.totalEvents.toLocaleString(),
       accent: 'text-[#00FF9D]',
       icon: MessageCircle,
@@ -51,35 +134,9 @@ export function OverviewTab({ format, overview }: OverviewTabProps) {
       accent: 'text-[#38BDF8]',
       icon: Calendar,
     },
-    {
-      label: t.overview.totalWords,
-      value: overview.totalWords.toLocaleString(),
-      accent: 'text-slate-100',
-      icon: Hash,
-    },
-    {
-      label:
-        format === 'chatgpt'
-          ? t.overview.regeneratedBranches
-          : format === 'tg_chat' || format === 'tg_account'
-            ? t.overview.serviceEvents
-            : t.overview.mediaAttachments,
-      value: (
-        format === 'chatgpt'
-          ? overview.extraBranchCount
-          : format === 'tg_chat' || format === 'tg_account'
-            ? overview.totalServiceEvents
-            : overview.totalMedia
-      ).toLocaleString(),
-      accent: 'text-[#F59E0B]',
-      icon: format === 'chatgpt' ? GitBranch : Image,
-    },
-    {
-      label: t.overview.threadsCount,
-      value: overview.totalThreads.toLocaleString(),
-      accent: 'text-slate-100',
-      icon: Layers,
-    },
+    thirdCard,
+    fourthCard,
+    fifthCard,
     {
       label: t.overview.dateSpan,
       value: (
@@ -93,6 +150,62 @@ export function OverviewTab({ format, overview }: OverviewTabProps) {
       icon: Calendar,
     },
   ];
+
+  const isMediaOrBrowser =
+    profile.archetype === 'media_video' ||
+    profile.archetype === 'media_audio' ||
+    profile.archetype === 'browser';
+
+  const distRows =
+    format === 'chrome_history' && ch && ch.topDomains.length > 0
+      ? ch.topDomains.slice(0, 15).map((d) => ({
+          label: d.domain,
+          count: d.visits,
+          words: 0,
+          sharePct: d.sharePct,
+        }))
+      : overview.topSenders.map((s) => ({
+          label: s.senderName,
+          count: s.eventCount,
+          words: s.wordCount,
+          sharePct: s.sharePct,
+        }));
+
+  const distMeta =
+    format === 'chrome_history'
+      ? {
+          title: t.overview.domainsTitle,
+          desc: t.overview.domainsDesc,
+          entityCol: t.overview.domainCol,
+          countCol: t.overview.eventsCol,
+        }
+      : format === 'spotify'
+        ? {
+            title: t.overview.artistsTitle,
+            desc: t.overview.artistsDesc,
+            entityCol: t.overview.artistCol,
+            countCol: t.overview.eventsCol,
+          }
+        : format === 'youtube' || format === 'tiktok'
+          ? {
+              title: t.overview.channelsTitle,
+              desc: t.overview.channelsDesc,
+              entityCol: t.overview.channelCol,
+              countCol: t.overview.eventsCol,
+            }
+          : isAiChat || isAgent
+            ? {
+                title: t.overview.aiBalanceTitle,
+                desc: t.overview.aiBalanceDesc,
+                entityCol: t.overview.senderCol,
+                countCol: t.overview.turnsCol,
+              }
+            : {
+                title: t.overview.participantsTitle,
+                desc: t.overview.participantsDesc,
+                entityCol: t.overview.senderCol,
+                countCol: t.overview.eventsCol,
+              };
 
   return (
     <div className="space-y-6">
@@ -275,24 +388,26 @@ export function OverviewTab({ format, overview }: OverviewTabProps) {
         <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
           <div>
             <h2 className="font-mono text-sm font-bold text-slate-100">
-              {t.overview.participantsTitle}
+              {distMeta.title}
             </h2>
-            <p className="text-xs text-slate-400">{t.overview.participantsDesc}</p>
+            <p className="text-xs text-slate-400">{distMeta.desc}</p>
           </div>
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
               <thead className="border-b border-[#1E293B] text-[10px] uppercase text-slate-400">
                 <tr>
-                  <th className="py-2 pr-3">{t.overview.senderCol}</th>
-                  <th className="px-3 py-2 text-right">{t.overview.eventsCol}</th>
-                  <th className="px-3 py-2 text-right">{t.overview.wordsCol}</th>
+                  <th className="py-2 pr-3">{distMeta.entityCol}</th>
+                  <th className="px-3 py-2 text-right">{distMeta.countCol}</th>
+                  {!isMediaOrBrowser && (
+                    <th className="px-3 py-2 text-right">{t.overview.wordsCol}</th>
+                  )}
                   <th className="py-2 pl-3 text-right">{t.overview.shareCol}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1E293B]/60">
-                {overview.topSenders.map((sender, idx) => (
-                  <tr key={sender.senderName} className="hover:bg-[#111822]">
+                {distRows.map((row, idx) => (
+                  <tr key={`${row.label}-${idx}`} className="hover:bg-[#111822]">
                     <td className="py-2.5 pr-3">
                       <div className="flex items-center gap-2">
                         <span
@@ -303,25 +418,27 @@ export function OverviewTab({ format, overview }: OverviewTabProps) {
                           }}
                         />
                         <span className="max-w-[160px] truncate text-slate-200">
-                          {sender.senderName}
+                          {row.label}
                         </span>
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-right text-slate-200">
-                      {sender.eventCount.toLocaleString()}
+                      {row.count.toLocaleString()}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">
-                      {sender.wordCount.toLocaleString()}
-                    </td>
+                    {!isMediaOrBrowser && (
+                      <td className="px-3 py-2.5 text-right text-slate-400">
+                        {row.words.toLocaleString()}
+                      </td>
+                    )}
                     <td className="py-2.5 pl-3 text-right">
                       <div className="inline-flex items-center gap-2">
                         <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-[#1E293B] sm:block">
                           <div
                             className="h-full bg-[#00FF9D]"
-                            style={{ width: `${Math.min(100, sender.sharePct)}%` }}
+                            style={{ width: `${Math.min(100, row.sharePct)}%` }}
                           />
                         </div>
-                        <span className="w-11 text-right text-[#00FF9D]">{sender.sharePct}%</span>
+                        <span className="w-11 text-right text-[#00FF9D]">{row.sharePct}%</span>
                       </div>
                     </td>
                   </tr>
