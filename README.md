@@ -1,66 +1,71 @@
-# TAKEOUT // X-RAY
+# TAKEOUT // X-RAY v2.0
 
-**100% client-side, zero-backend personal data forensics & "Wrapped" telemetry generator.**
+**100% client-side, zero-backend personal data forensics engine for 12 platforms (13 export formats) — with streaming `.zip` ingestion, DuckDB-Wasm SQL, service-adapted telemetry, and anonymized 1080×1350 Wrapped exports.**
 
-[**Live Demo → wioledead.github.io/takeout-xray**](https://wioledead.github.io/takeout-xray/)
+[**Launch Live App → wioledead.github.io/takeout-xray**](https://wioledead.github.io/takeout-xray/)
 
-Drag and drop massive personal archive exports (Telegram Desktop, ChatGPT, or Google Takeout Chrome History) directly into your browser. Not a single byte of your data ever leaves your device.
+Drag and drop raw `.zip` archives, folders, or massive JSON/JSONL/JS/TXT exports directly into your browser (`Antigravity 2.0`, `Claude Code CLI`, `ChatGPT`, `Claude.ai`, `Telegram`, `WhatsApp`, `Discord`, `X / Twitter`, `Spotify`, `YouTube`, `TikTok`, `Google Chrome`). Not a single byte of your data ever leaves your device.
 
-### Overview, Circadian Heatmap & Behavioral Forensics
+### v2 Walkthrough: 12-Service Grid, Export Guides & Service-Adapted Forensics
 
-![Takeout X-Ray Overview Tour](docs/assets/overview-tour.gif)
+![Takeout X-Ray v2 Overview Tour](docs/assets/overview-tour.gif)
 
-### ChatGPT DAG Lens, Live DuckDB SQL & Anonymized Wrapped Export
+### Specialized Lenses (AI Agents, Spotify, X/Twitter), Live DuckDB SQL & Wrapped Audit
 
-![ChatGPT Lens, DuckDB SQL Console & Network Audit](docs/assets/sql-wrapped-audit.gif)
+![Specialized Lenses, DuckDB SQL Console, Wrapped & Zero-Exfiltration Audit](docs/assets/sql-wrapped-audit.gif)
 
 ---
 
-## Privacy & Architecture Guarantees
+## Privacy & Streaming Architecture Guarantees
 
-- **Zero Backend / Zero Upload:** Everything runs locally inside your browser tab.
-- **Zero Full-File `JSON.parse()`:** Files exceeding 500 MB are read incrementally via `ReadableStream` (`file.stream().getReader()`) and `@streamparser/json` inside a dedicated Web Worker (`src/worker/xray.worker.ts`) without freezing the UI thread.
-- **DuckDB-Wasm Hygiene:** Normalized events are flushed in `5,000`-row NDJSON batches using `db.registerFileText(...)` + `read_json(...)` and immediately cleaned up via `await db.dropFile(...)` to prevent WASM virtual filesystem memory leaks.
-- **No `COOP / COEP` Headers Required:** Uses standard `mvp`/`eh` DuckDB-Wasm bundles (loaded once from jsDelivr CDN at initialization; user files never touch the network) with a same-origin Blob worker wrapper so it deploys cleanly on any static host (GitHub Pages, Cloudflare Pages, Netlify, Vercel).
-- **Live Network Telemetry Audit:** Built-in `PerformanceObserver` + `fetch`/`XHR`/`sendBeacon` monitor displays live `0 B SENT AFTER LOAD` status with an inspectable audit modal.
+- **Zero Backend / Zero Upload:** Everything runs locally inside your browser tab via Dedicated Web Worker + DuckDB-Wasm.
+- **Streaming `.ZIP` Central-Directory Slicing:** Multi-gigabyte Takeout / Discord / X / ChatGPT `.zip` bundles are inspected in milliseconds without extracting heavy media folders (`@zip.js/zip.js` with external workers disabled), and multi-service Google Takeout `.zip` archives let you pick each dataset interactively.
+- **Zero Full-File `JSON.parse()`:** Huge logs are streamed incrementally with `ReadableStream` (`file.stream().getReader()`) and `@streamparser/json` inside `src/worker/xray.worker.ts`. Official X / Twitter `window.YTD.<type>.partN = [...]` wrappers are stripped on the fly via constant-memory byte streaming.
+- **Folder Smart Deduplication:** Dropping local agent directories (like `~/.gemini/antigravity/brain` or `~/.claude/projects`) automatically selects `transcript_full.jsonl` over `transcript.jsonl` and deduplicates streaming chunk usage by `message.id`.
+- **DuckDB-Wasm Memory Hygiene:** Events, agent steps, and media/social telemetry flush in `5,000`-row NDJSON batches using `db.registerFileText(...)` + `read_json(...)` and are immediately cleaned up with `await db.dropFile(...)`.
+- **No `COOP / COEP` Headers Required:** Deploys cleanly on any static host (GitHub Pages, Cloudflare Pages, Netlify, Vercel).
+- **Live Network Telemetry Audit:** Built-in `PerformanceObserver` + `fetch`/`XHR`/`sendBeacon` monitor keeps a live `0 B SENT AFTER LOAD` indicator with an inspectable audit modal.
 
 ```mermaid
 flowchart LR
-    File["Personal JSON Export (500MB+)"] -->|"file.stream().getReader()"| Detector["16KB Signature Sniffer"]
-    Detector -->|"tg_chat / tg_account / chatgpt / chrome_history"| Parser["@streamparser/json (Web Worker)"]
-    Parser -->|"5,000-row NDJSON batch"| VFS["db.registerFileText -> read_json -> db.dropFile"]
-    VFS --> DuckDB["DuckDB-Wasm In-Browser SQL Engine"]
-    DuckDB -->|"Typed RPC (postMessage)"| UI["React 19 Cyber-Terminal Dashboard"]
-    UI -->|"html-to-image (client-side)"| PNG["1080×1350 X-Ray Wrapped PNG"]
+    Drop["Raw .zip / Folder / JSON / JS / JSONL / TXT"] -->|"Central-dir slice / Stream"| Detector["4MB Prefix Signature Sniffer (13 Formats)"]
+    Detector -->|"Strip YTD / Stream Parse"| Worker["Streaming Adapters (Web Worker)"]
+    Worker -->|"5,000-row NDJSON batch"| VFS["db.registerFileText -> read_json -> db.dropFile"]
+    VFS --> DuckDB["DuckDB-Wasm In-Browser SQL (4 Tables)"]
+    DuckDB -->|"Archetype Profile (formatProfile.ts)"| UI["Service-Adapted Cyber-Terminal Dashboard (EN / RU)"]
+    UI -->|"html-to-image (client-side)"| PNG["Anonymizable 1080×1350 X-Ray Wrapped PNG"]
 ```
 
 ---
 
-## Supported Personal Data Formats
+## Supported Platforms (12 Services · 13 Export Formats)
 
-| Source | Export File | How to Export |
-| :--- | :--- | :--- |
-| **Telegram Desktop** | `result.json` (single chat or full account `chats.list`) | Telegram Desktop → Settings → Advanced → Export Telegram data (JSON format) |
-| **OpenAI ChatGPT** | `conversations.json` (reconstructs active DAG branch + counts regenerated branches) | ChatGPT → Settings → Data controls → Export data |
-| **Google Takeout Chrome** | `BrowserHistory.json` (`time_usec` precision & transition forensics) | [takeout.google.com](https://takeout.google.com) → Chrome → History (JSON) |
+Built-in step-by-step **Export Guides (EN / RU)** are included directly inside the app UI.
+
+| Category | Service | Expected Files / Input | Highlights |
+| :--- | :--- | :--- | :--- |
+| **AI Agents** | **Antigravity 2.0** | `brain/` folder, `transcript_full.jsonl`, `transcript.jsonl`, `.zip` | Token budgets, KV cache hit rate, thinking vs reply chars, tool call heatmap |
+| **AI Agents** | **Claude Code CLI** | `~/.claude/projects/` folder, `<session-uuid>.jsonl`, `.zip` | Session telemetry, cache read efficiency, `Read`/`Edit`/`Bash` tool breakdown |
+| **AI Chats** | **OpenAI ChatGPT** | `.zip` or `conversations.json` | Reconstructs active DAG branch + counts regenerated/abandoned branches & politeness |
+| **AI Chats** | **Anthropic Claude.ai** | `.zip` or `conversations.json` | Extracts prompt/reply cadence, thinking-turn volume & code block density |
+| **Messengers** | **Telegram Desktop** | `result.json` (`tg_chat` single chat & `tg_account` full account), `.zip` | 6h+ silence initiator index, true median reply speed, monologue streaks |
+| **Messengers** | **WhatsApp** | `_chat.txt` / `WhatsApp Chat with *.txt` / `.zip` | Auto-detects iOS & Android + DMY/MDY dates, multiline messages, media omitted tags |
+| **Messengers** | **Discord** | Official Data Package `.zip` / `messages/` or DiscordChatExporter `.json` | Resolves channel & DM names from `messages/index.json` + multi-channel stats |
+| **Social** | **X (Twitter)** | Archive `.zip`, `data/tweets.js`, `like.js`, `direct-messages.js` | Streams `window.YTD.*` files, decodes Snowflake IDs for likes, clients & top posts ❤️ |
+| **Media** | **Spotify** | `.zip` or `Streaming_History_Audio_*.json` / `StreamingHistory*.json` | Hours listened, skip/shuffle habits, artist obsession & top replayed tracks |
+| **Media** | **YouTube** | Takeout `.zip` or `watch-history.json` | Unique channels, Shorts vs Long-Form ratio & channel binge-watch marathons |
+| **Media** | **TikTok** | `.zip` or `user_data_tiktok.json` | Watched feed, like/watch conversion ratio, searches, sounds & `@creator` streaks |
+| **Browser** | **Google Chrome** | Takeout `.zip` or `BrowserHistory.json` / `History.json` | `time_usec` precision, `TYPED`/`LINK`/`RELOAD` transitions & domain rabbit holes |
 
 ---
 
-## Key Forensic Views
+## Key Capabilities & Service-Adapted Forensics
 
-1. **Overview:** KPI telemetry cards, custom SVG **24×7 Circadian Activity Matrix**, adaptive temporal activity timeline, and entity volume breakdown.
-2. **Behavior & Dynamics:**
-   - **Conversation Initiator Index:** Who breaks 6+ hour silence gaps to restart dialogue.
-   - **Median Response Latency:** True median reply cadence (excludes 6h+ sleep gaps & double-text bursts).
-   - **Monologue Streaks:** Longest uninterrupted consecutive message chains per participant.
-   - **Night Owl Index:** Late-night activity share (`00:00–05:00`) and peak hour.
-3. **Lexicon & Specialized Lenses:**
-   - Stopwords-filtered **Top Vocabulary** (EN + RU) and **Vocabulary Evolution by Year**.
-   - Unicode **Emoji Telemetry** and **Question Curiosity Index**.
-   - **ChatGPT Lens:** User vs Assistant character footprint, polite prompt density, code block ratio, and abandoned/regenerated DAG branches.
-   - **Chrome Lens:** Top visited domains, `TYPED`/`LINK`/`RELOAD` transition breakdown, and single-domain rabbit-hole streaks.
-4. **Live SQL Console:** Query normalized DuckDB tables (`events`, `threads`, `stopwords`) directly in a read-only sandbox with one-click forensic presets, schema sidebar, 500-row DOM cap, and CSV export.
-5. **X-Ray Wrapped Modal:** Generate a `1080×1350` Cyber-Terminal PNG poster with an **Anonymize Names** toggle (`Subject_01`, `Subject_02`, `Thread_REDACTED`).
+1. **12 Instant Client-Side Demos & Bilingual UI (EN / RU):** Test every supported platform in 1 click using deterministic synthetic datasets directly from the 4×3 landing grid.
+2. **Archetype-Aware Analytics (`formatProfile.ts`):** Metrics adapt to the platform archetype so chat-only metrics (like *6h Conversation Initiator*, *Median Reply Latency*, or *Monologue Streaks*) never appear on YouTube, Spotify, TikTok, Chrome, Coding Agents, or X/Twitter. Instead, each service surfaces domain-native breakdowns (`Channel Binge Marathons`, `Posting Style & Clients`, `Playback Skip vs Shuffle`, `Domain Rabbit Holes`, `Agent Tool Calls`).
+3. **Circadian Matrix & Lexicon Engine:** 24×7 local timezone heatmap, stopwords-filtered EN/RU top vocabulary by year, Unicode emoji extractor, and specialized forensic lens cards.
+4. **Live Read-Only DuckDB SQL Console:** Query `events`, `threads`, `antigravity_steps`, `media_events`, and `stopwords` directly in SQL with source-prioritized presets, 500-row DOM cap, and 1-click CSV copy.
+5. **Anonymizable `1080×1350` X-Ray Wrapped Card:** Generate and download a shareable PNG summary customized for the active platform, with an **Anonymize Names** toggle (`Subject_01`, `Thread_REDACTED`).
 
 ---
 
@@ -76,7 +81,7 @@ npm run dev
 # Run TypeScript check
 npm run typecheck
 
-# Run Vitest unit & DuckDB integration suite
+# Run Vitest unit & DuckDB-Wasm integration suite
 npm test
 
 # Build static production bundle
