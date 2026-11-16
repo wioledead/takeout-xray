@@ -15,6 +15,7 @@ import type {
   SqlCellValue,
   SqlQueryResult,
   TikTokLensMetrics,
+  TwitterLensMetrics,
   YearlyWords,
   YouTubeLensMetrics,
 } from '../types/domain';
@@ -613,6 +614,55 @@ export class XRayEngine {
       }
     }
 
+    let twitterLens: TwitterLensMetrics | undefined;
+    if (format === 'twitter') {
+      const [statsTable, handlesTable, sourcesTable, viralTable] = await Promise.all([
+        this.backend.query(sql.twitterStats),
+        this.backend.query(sql.twitterTopHandles),
+        this.backend.query(sql.twitterTopSources),
+        this.backend.query(sql.twitterTopViral),
+      ]);
+      const row = extractRows(statsTable)[0];
+      const hRows = extractRows(handlesTable);
+      const totalHits = toNum(hRows[0]?.totalHits) || hRows.reduce((acc, r) => acc + toNum(r.count), 0) || 1;
+      const sRows = extractRows(sourcesTable);
+      const totalPosts = toNum(sRows[0]?.totalPosts) || sRows.reduce((acc, r) => acc + toNum(r.count), 0) || 1;
+
+      if (row) {
+        twitterLens = {
+          totalTweets: toNum(row.totalTweets),
+          originalTweets: toNum(row.originalTweets),
+          replyTweets: toNum(row.replyTweets),
+          retweetTweets: toNum(row.retweetTweets),
+          totalLikesGiven: toNum(row.totalLikesGiven),
+          totalLikesReceived: toNum(row.totalLikesReceived),
+          uniqueHandles: toNum(row.uniqueHandles),
+          topHandles: hRows.map((r) => {
+            const count = toNum(r.count);
+            return {
+              handle: String(r.handle ?? '@handle'),
+              count,
+              sharePct: Number(((count * 100) / totalHits).toFixed(1)),
+            };
+          }),
+          topSources: sRows.map((r) => {
+            const count = toNum(r.count);
+            return {
+              source: String(r.source ?? 'X Web'),
+              count,
+              sharePct: Number(((count * 100) / totalPosts).toFixed(1)),
+            };
+          }),
+          topViralPosts: extractRows(viralTable).map((r) => ({
+            text: String(r.text ?? ''),
+            likes: toNum(r.likes),
+            ts: toNum(r.ts),
+            kind: String(r.kind ?? 'tweet'),
+          })),
+        };
+      }
+    }
+
     return {
       topWords: extractRows(wordsTable).map((r) => ({
         word: String(r.word ?? ''),
@@ -635,6 +685,7 @@ export class XRayEngine {
       spotifyLens,
       youtubeLens,
       tiktokLens,
+      twitterLens,
     };
   }
 

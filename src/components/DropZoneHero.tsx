@@ -2,6 +2,7 @@ import { useRef, useState, type DragEvent } from 'react';
 import {
   AlertTriangle,
   Archive,
+  AtSign,
   BookOpen,
   Bot,
   Cpu,
@@ -197,6 +198,15 @@ export function DropZoneHero({
       icon: Hash,
     },
     {
+      id: 'twitter',
+      title: t.dropzone.demoTwitterTitle,
+      desc: t.dropzone.demoTwitterDesc,
+      fileHint: 'data/tweets.js / .zip',
+      accent: 'text-[#38BDF8]',
+      borderClass: 'border-[#38BDF8]/40 hover:border-[#38BDF8]/80',
+      icon: AtSign,
+    },
+    {
       id: 'spotify',
       title: t.dropzone.demoSpotifyTitle,
       desc: t.dropzone.demoSpotifyDesc,
@@ -260,7 +270,7 @@ export function DropZoneHero({
           ref={inputRef}
           type="file"
           multiple
-          accept=".zip,.json,.jsonl,.ndjson,.txt,application/zip,application/json,text/plain"
+          accept=".zip,.json,.js,.jsonl,.ndjson,.txt,application/zip,application/json,application/javascript,text/javascript,text/plain"
           className="hidden"
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) {
@@ -470,31 +480,6 @@ export function DropZoneHero({
               </button>
             );
           })}
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setGuideService('telegram')}
-            className="group flex flex-col items-start rounded-lg border border-dashed border-[#1E293B] bg-[#07090D]/80 p-3.5 text-left transition hover:border-[#00FF9D]/60 hover:bg-[#0D1117] disabled:opacity-50 cursor-pointer"
-          >
-            <div className="flex w-full items-center justify-between gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[#00FF9D]/30 bg-[#00FF9D]/10 text-[#00FF9D]">
-                <BookOpen className="h-3.5 w-3.5" />
-              </span>
-              <span className="font-mono text-[10px] font-semibold text-[#00FF9D] opacity-80 group-hover:opacity-100">
-                {t.dropzone.demoGuidesBadge}
-              </span>
-            </div>
-            <h3 className="mt-2.5 font-mono text-xs font-bold text-slate-100">
-              {t.dropzone.demoGuidesTitle}
-            </h3>
-            <code className="mt-1 rounded border border-[#1E293B] bg-[#0D1117] px-1.5 py-0.5 font-mono text-[10px] text-[#38BDF8]">
-              12 formats · %USERPROFILE% / ~
-            </code>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
-              {t.dropzone.demoGuidesDesc}
-            </p>
-          </button>
         </div>
       </div>
 

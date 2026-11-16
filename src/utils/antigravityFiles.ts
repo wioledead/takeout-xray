@@ -17,7 +17,7 @@ interface WebkitDirectoryReader {
 }
 
 const ANTIGRAVITY_TRANSCRIPT_RE = /(?:^|[\\/])(transcript(?:_full)?)\.jsonl$/i;
-const SUPPORTED_EXT_RE = /\.(?:json|jsonl|ndjson|txt|zip)$/i;
+const SUPPORTED_EXT_RE = /\.(?:json|jsonl|ndjson|txt|js|zip)$/i;
 const IGNORED_PATH_RE = /(?:^|[\\/])(?:__MACOSX|node_modules|\.git)(?:[\\/]|$)/i;
 
 function readEntryFile(entry: WebkitFileSystemEntry): Promise<File | null> {

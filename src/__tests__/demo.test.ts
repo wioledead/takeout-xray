@@ -328,6 +328,28 @@ describe('Synthetic demo generators & full DuckDB pipeline', () => {
       expect(ttSnap.lexicon.tiktokLens?.totalSearches).toBeGreaterThan(20);
       expect(ttSnap.lexicon.tiktokLens?.topCreators.length).toBeGreaterThan(3);
       expect(ttSnap.lexicon.tiktokLens?.bingeStreaks.length).toBeGreaterThan(0);
+
+      const tw = generateDemoDataset('twitter');
+      expect(tw.format).toBe('twitter');
+      expect(tw.threads).toHaveLength(2);
+      expect(tw.events.length).toBeGreaterThan(1000);
+      expect(tw.mediaEvents?.length).toBe(tw.events.length);
+      await engine.resetSession(tw.format);
+      await engine.ingestBatch(tw.threads, tw.events, [], tw.mediaEvents);
+      const twSnap = await engine.getDashboardSnapshot('ALL', 0);
+      expect(twSnap.lexicon.twitterLens).toBeDefined();
+      expect(twSnap.lexicon.twitterLens?.originalTweets).toBeGreaterThan(200);
+      expect(twSnap.lexicon.twitterLens?.replyTweets).toBeGreaterThan(150);
+      expect(twSnap.lexicon.twitterLens?.retweetTweets).toBeGreaterThan(100);
+      expect(twSnap.lexicon.twitterLens?.totalLikesGiven).toBeGreaterThan(150);
+      expect(twSnap.lexicon.twitterLens?.totalLikesReceived).toBeGreaterThan(1000);
+      expect(twSnap.lexicon.twitterLens?.topHandles.length).toBeGreaterThan(3);
+      expect(twSnap.lexicon.twitterLens?.topSources.length).toBeGreaterThan(2);
+      expect(twSnap.lexicon.twitterLens?.topViralPosts.length).toBeGreaterThan(0);
+
+      const twPreset = getSqlPresets(0).find((p) => p.id === 'twitterPosts')!;
+      const twSqlRes = await engine.runSql(twPreset.sql);
+      expect(twSqlRes.rows.length).toBeGreaterThan(10);
     } finally {
       close();
     }

@@ -26,6 +26,7 @@ import { parseDiscordStream } from '../worker/adapters/discord';
 import { parseSpotifyStream } from '../worker/adapters/spotify';
 import { parseTelegramStream } from '../worker/adapters/telegram';
 import { parseTikTokStream } from '../worker/adapters/tiktok';
+import { decodeTwitterSnowflakeMs, parseTwitterStream } from '../worker/adapters/twitter';
 import { parseWhatsAppStream } from '../worker/adapters/whatsapp';
 import { parseYouTubeStream } from '../worker/adapters/youtube';
 
@@ -583,6 +584,15 @@ describe('Expanded multi-service format detection & streaming adapters', () => {
     expect(
       detectExportFormat('{"Activity":{"Video Browsing History":{"VideoList":[{"Date":"2024-01-01 12:00:00","Link":"https://www.tiktok.com/@user/video/1"}]}}}'),
     ).toBe('tiktok');
+    expect(
+      detectExportFormat('window.YTD.tweets.part0 = [{"tweet":{"created_at":"Wed Oct 16 18:24:11 +0000 2024","full_text":"hello x"}}];'),
+    ).toBe('twitter');
+    expect(
+      detectExportFormat('window.YTD.like.part0 = [{"like":{"tweetId":"1846618510000000000","fullText":"liked"}}]'),
+    ).toBe('twitter');
+    expect(
+      detectExportFormat('[{"dmConversation":{"conversationId":"1-2","messages":[]}}]'),
+    ).toBe('twitter');
   });
 
   it('parses Claude.ai conversations with thinking blocks and file attachments', async () => {
@@ -946,5 +956,122 @@ describe('Expanded multi-service format detection & streaming adapters', () => {
     });
 
     expect(ytTitles).toEqual(['Systems Programming']);
+  });
+
+  it('parses X / Twitter window.YTD tweets.js, like.js, and ZIP archive end-to-end', async () => {
+    const tweetsJs =
+      'window.YTD.tweets.part0 = ' +
+      JSON.stringify([
+        {
+          tweet: {
+            id_str: '1846618510000000000',
+            created_at: 'Wed Oct 16 18:24:11 +0000 2024',
+            full_text: 'Привет X! Testing "quotes" & [brackets] with DuckDB 🚀 https://github.com/wioledead/takeout-xray',
+            favorite_count: '42',
+            retweet_count: '5',
+            retweeted: false,
+            source: '<a href="https://mobile.twitter.com" rel="nofollow">Twitter for iPhone</a>',
+            entities: {
+              urls: [{ expanded_url: 'https://github.com/wioledead/takeout-xray' }],
+              user_mentions: [],
+            },
+          },
+        },
+        {
+          tweet: {
+            id_str: '1846618610000000000',
+            created_at: 'Wed Oct 16 19:00:00 +0000 2024',
+            full_text: '@karpathy Pure browser WASM indexing is wild!',
+            in_reply_to_screen_name: 'karpathy',
+            favorite_count: '7',
+            source: '<a href="https://twitter.com" rel="nofollow">Twitter Web App</a>',
+          },
+        },
+        {
+          tweet: {
+            id_str: '1846618710000000000',
+            created_at: 'Wed Oct 16 20:00:00 +0000 2024',
+            full_text: 'RT @levelsio: Ship fast and keep data local',
+            favorite_count: '0',
+            retweeted: true,
+            source: '<a href="https://twitter.com" rel="nofollow">Twitter Web App</a>',
+          },
+        },
+      ]) +
+      ';\n';
+
+    const threads: NormalizedThread[] = [];
+    const events: NormalizedEvent[] = [];
+    const media: NormalizedMediaEvent[] = [];
+
+    await parseTwitterStream({
+      ...createChunkedStream(tweetsJs, 24),
+      onBatch: (t, e) => {
+        threads.push(...t);
+        events.push(...e);
+      },
+      onMediaBatch: (m) => {
+        media.push(...m);
+      },
+    });
+
+    expect(threads).toHaveLength(1);
+    expect(events).toHaveLength(3);
+    expect(events[0].event_kind).toBe('message');
+    expect(events[0].domain).toBe('github.com');
+    expect(events[0].emojis).toEqual(['🚀']);
+    expect(events[1].meta_subtype).toBe('reply');
+    expect(events[1].sender_name).toBe('@karpathy');
+    expect(events[2].event_kind).toBe('service');
+    expect(events[2].meta_subtype).toBe('retweet');
+
+    expect(media).toHaveLength(3);
+    expect(media[0].album_or_sub).toBe('Twitter for iPhone');
+    expect(media[0].ms_played).toBe(42);
+    expect(media[1].album_or_sub).toBe('Twitter Web App');
+    expect(media[2].creator_name).toBe('@levelsio');
+
+    // Verify Snowflake timestamp decoding for like.js entries without explicit timestamps
+    const snowflakeMs = decodeTwitterSnowflakeMs('1846618510000000000');
+    expect(snowflakeMs).not.toBeNull();
+    expect(new Date(snowflakeMs!).getUTCFullYear()).toBe(2024);
+
+    // Verify multi-file Twitter ZIP extraction ignores non-ingestible js metadata files
+    configureZip({ useWebWorkers: false });
+    const writer = new ZipWriter(new BlobWriter('application/zip'));
+    await writer.add('data/tweets.js', new TextReader(tweetsJs));
+    await writer.add(
+      'data/like.js',
+      new TextReader(
+        'window.YTD.like.part0 = [{"like":{"tweetId":"1846618510000000000","fullText":"Liked thread","expandedUrl":"https://x.com/simonw/status/1846618510000000000"}}]',
+      ),
+    );
+    await writer.add('data/account.js', new TextReader('window.YTD.account.part0 = [{"account":{"email":"hidden"}}];'));
+    const zipFile = new File([await writer.close()], 'twitter-archive.zip', { type: 'application/zip' });
+
+    const groups = await inspectZipArchive(zipFile);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].groupId).toBe('twitter');
+    expect(groups[0].entries).toHaveLength(2);
+
+    const likeMedia: NormalizedMediaEvent[] = [];
+    const likeEntry = groups[0].entries.find((e) => e.zipEntryPath === 'data/like.js')!;
+    await withZipEntryStream(zipFile, likeEntry.zipEntryPath!, async (stream, size) => {
+      const { format, replayStream } = await detectAndWrapStream(stream);
+      expect(format).toBe('twitter');
+      await parseTwitterStream({
+        stream: replayStream,
+        totalBytes: size,
+        onBatch: () => {},
+        onMediaBatch: (m) => {
+          likeMedia.push(...m);
+        },
+      });
+    });
+
+    expect(likeMedia).toHaveLength(1);
+    expect(likeMedia[0].platform).toBe('like');
+    expect(likeMedia[0].creator_name).toBe('@simonw');
+    expect(likeMedia[0].ts_ms).toBe(snowflakeMs);
   });
 });

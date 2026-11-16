@@ -67,6 +67,7 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
   const sp = lexicon?.spotifyLens;
   const yt = lexicon?.youtubeLens;
   const tt = lexicon?.tiktokLens;
+  const tw = lexicon?.twitterLens;
   const ch = lexicon?.chromeLens;
 
   const thirdCard =
@@ -76,9 +77,11 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
         ? { label: t.lexicon.ytUniqueChannels, value: yt.uniqueChannels.toLocaleString(), accent: 'text-[#F43F5E]', icon: Users }
         : format === 'tiktok' && tt
           ? { label: t.lexicon.ttLikes, value: tt.totalLikes.toLocaleString(), accent: 'text-[#EC4899]', icon: Heart }
-          : format === 'chrome_history' && ch
-            ? { label: t.lexicon.chromeTransitions, value: (ch.transitions[0]?.transition ?? 'link').toUpperCase(), accent: 'text-[#38BDF8]', icon: Compass }
-            : { label: t.overview.totalWords, value: overview.totalWords.toLocaleString(), accent: 'text-slate-100', icon: Hash };
+          : format === 'twitter' && tw
+            ? { label: t.lexicon.twLikesReceived, value: tw.totalLikesReceived.toLocaleString(), accent: 'text-[#F43F5E]', icon: Heart }
+            : format === 'chrome_history' && ch
+              ? { label: t.lexicon.chromeTransitions, value: (ch.transitions[0]?.transition ?? 'link').toUpperCase(), accent: 'text-[#38BDF8]', icon: Compass }
+              : { label: t.overview.totalWords, value: overview.totalWords.toLocaleString(), accent: 'text-slate-100', icon: Hash };
 
   const fourthCard =
     format === 'spotify' && sp
@@ -87,32 +90,36 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
         ? { label: t.lexicon.ytShortsShare, value: `${yt.shortsPct}%`, accent: 'text-[#F59E0B]', icon: Film }
         : format === 'tiktok' && tt
           ? { label: t.lexicon.ttLikeRate, value: `${tt.likeRatePct}%`, accent: 'text-[#00FF9D]', icon: Heart }
-          : format === 'chrome_history' && ch?.topDomains[0]
-            ? { label: ch.topDomains[0].domain, value: `${ch.topDomains[0].sharePct}%`, accent: 'text-[#F59E0B]', icon: Globe }
-            : {
-                label: isAiChat
-                  ? t.overview.regeneratedBranches
-                  : isAgent
-                    ? t.overview.agentSteps
+          : format === 'twitter' && tw
+            ? { label: t.lexicon.twOriginalPosts, value: tw.originalTweets.toLocaleString(), accent: 'text-[#38BDF8]', icon: MessageCircle }
+            : format === 'chrome_history' && ch?.topDomains[0]
+              ? { label: ch.topDomains[0].domain, value: `${ch.topDomains[0].sharePct}%`, accent: 'text-[#F59E0B]', icon: Globe }
+              : {
+                  label: isAiChat
+                    ? t.overview.regeneratedBranches
+                    : isAgent
+                      ? t.overview.agentSteps
+                      : hasServiceMetrics
+                        ? t.overview.serviceEvents
+                        : t.overview.mediaAttachments,
+                  value: (isAiChat
+                    ? overview.extraBranchCount
                     : hasServiceMetrics
-                      ? t.overview.serviceEvents
-                      : t.overview.mediaAttachments,
-                value: (isAiChat
-                  ? overview.extraBranchCount
-                  : hasServiceMetrics
-                    ? overview.totalServiceEvents
-                    : overview.totalMedia
-                ).toLocaleString(),
-                accent: 'text-[#F59E0B]',
-                icon: isAiChat ? GitBranch : isAgent ? Cpu : Image,
-              };
+                      ? overview.totalServiceEvents
+                      : overview.totalMedia
+                  ).toLocaleString(),
+                  accent: 'text-[#F59E0B]',
+                  icon: isAiChat ? GitBranch : isAgent ? Cpu : Image,
+                };
 
   const fifthCard =
     format === 'spotify' && sp
       ? { label: t.lexicon.spotifyUniqueArtists, value: sp.uniqueArtists.toLocaleString(), accent: 'text-slate-100', icon: Users }
       : format === 'tiktok' && tt
         ? { label: t.lexicon.ttSearches, value: tt.totalSearches.toLocaleString(), accent: 'text-[#38BDF8]', icon: Search }
-        : { label: t.overview.threadsCount, value: overview.totalThreads.toLocaleString(), accent: 'text-slate-100', icon: Layers };
+        : format === 'twitter' && tw
+          ? { label: t.lexicon.twLikesGiven, value: tw.totalLikesGiven.toLocaleString(), accent: 'text-[#00FF9D]', icon: Heart }
+          : { label: t.overview.threadsCount, value: overview.totalThreads.toLocaleString(), accent: 'text-slate-100', icon: Layers };
 
   const kpiCards = [
     {
@@ -123,7 +130,9 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
             ? t.overview.totalStreams
             : format === 'youtube' || format === 'tiktok'
               ? t.overview.totalVideosWatched
-              : t.overview.totalEvents,
+              : format === 'twitter'
+                ? t.overview.totalPosts
+                : t.overview.totalEvents,
       value: overview.totalEvents.toLocaleString(),
       accent: 'text-[#00FF9D]',
       icon: MessageCircle,
@@ -154,7 +163,8 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
   const isMediaOrBrowser =
     profile.archetype === 'media_video' ||
     profile.archetype === 'media_audio' ||
-    profile.archetype === 'browser';
+    profile.archetype === 'browser' ||
+    profile.archetype === 'social_feed';
 
   const distRows =
     format === 'chrome_history' && ch && ch.topDomains.length > 0
@@ -164,12 +174,19 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
           words: 0,
           sharePct: d.sharePct,
         }))
-      : overview.topSenders.map((s) => ({
-          label: s.senderName,
-          count: s.eventCount,
-          words: s.wordCount,
-          sharePct: s.sharePct,
-        }));
+      : format === 'twitter' && tw && tw.topHandles.length > 0
+        ? tw.topHandles.slice(0, 15).map((h) => ({
+            label: h.handle,
+            count: h.count,
+            words: 0,
+            sharePct: h.sharePct,
+          }))
+        : overview.topSenders.map((s) => ({
+            label: s.senderName,
+            count: s.eventCount,
+            words: s.wordCount,
+            sharePct: s.sharePct,
+          }));
 
   const distMeta =
     format === 'chrome_history'
@@ -179,7 +196,14 @@ export function OverviewTab({ format, overview, lexicon }: OverviewTabProps) {
           entityCol: t.overview.domainCol,
           countCol: t.overview.eventsCol,
         }
-      : format === 'spotify'
+      : format === 'twitter' && tw && tw.topHandles.length > 0
+        ? {
+            title: t.overview.handlesTitle,
+            desc: t.overview.handlesDesc,
+            entityCol: t.overview.handleCol,
+            countCol: t.overview.eventsCol,
+          }
+        : format === 'spotify'
         ? {
             title: t.overview.artistsTitle,
             desc: t.overview.artistsDesc,

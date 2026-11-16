@@ -30,6 +30,9 @@ const TG_ACCOUNT_RE = /"chats"\s*:\s*\{[\s\S]{0,1000}"list"\s*:\s*\[/;
 const TG_CHAT_RE = /"messages"\s*:\s*\[/;
 const ANTIGRAVITY_HEAD_RE = /^\s*\{[\s\S]{0,512}"step_index"\s*:\s*\d+/;
 const ANTIGRAVITY_FIELDS_RE = /"source"\s*:\s*"(?:USER_EXPLICIT|MODEL|SYSTEM)"/;
+const TWITTER_YTD_PREFIX_RE = /^\s*window\.YTD\.[A-Za-z0-9_]+\.part\d+\s*=\s*/;
+const TWITTER_BODY_RE =
+  /"tweet"\s*:\s*\{[\s\S]{0,1200}"(?:full_text|created_at|id_str|edit_info|entities)"\s*:|"like"\s*:\s*\{[\s\S]{0,400}"tweetId"\s*:|"dmConversation"\s*:\s*\{[\s\S]{0,400}"conversationId"\s*:|"full_text"\s*:[\s\S]{0,600}"created_at"\s*:/;
 
 function detectJsonlObjectFormat(trimmed: string): ExportFormat | null {
   const nlIdx = trimmed.indexOf('\n');
@@ -89,7 +92,17 @@ export function tryDetectExportFormat(sliceText: string): ExportFormat | null {
     return 'chrome_history';
   }
 
-  // Array-rooted JSON formats (ChatGPT, Claude.ai, Spotify, YouTube Takeout, Discord Package)
+  // Official X / Twitter archive JavaScript exports (`window.YTD.<type>.part0 = [...]`)
+  if (TWITTER_YTD_PREFIX_RE.test(trimmed)) {
+    if (TWITTER_BODY_RE.test(clean)) {
+      return 'twitter';
+    }
+    if (trimmed.includes('[')) {
+      return null;
+    }
+  }
+
+  // Array-rooted JSON formats (ChatGPT, Claude.ai, Spotify, YouTube Takeout, Discord Package, Twitter JSON)
   if (CHATGPT_ARRAY_ROOT_RE.test(trimmed)) {
     if (CHATGPT_MAPPING_RE.test(clean) && CHATGPT_NODE_RE.test(clean)) {
       return 'chatgpt';
@@ -105,6 +118,9 @@ export function tryDetectExportFormat(sliceText: string): ExportFormat | null {
     }
     if (DISCORD_PKG_RE.test(clean)) {
       return 'discord';
+    }
+    if (TWITTER_BODY_RE.test(clean)) {
+      return 'twitter';
     }
     // Wait for more bytes if header objects precede nested distinguishing keys
     return null;
@@ -180,6 +196,7 @@ export async function detectFileFormat(file: Blob): Promise<ExportFormat> {
     }
   }
 
+  if (TWITTER_BODY_RE.test(lastText)) return 'twitter';
   if (TIKTOK_RE.test(lastText)) return 'tiktok';
   if (DISCORD_DCE_RE.test(lastText)) return 'discord';
   if (TG_CHAT_RE.test(lastText)) return 'tg_chat';
@@ -223,7 +240,8 @@ export async function detectAndWrapStream(
     }
 
     if (!detected) {
-      if (TIKTOK_RE.test(prefixText)) detected = 'tiktok';
+      if (TWITTER_BODY_RE.test(prefixText)) detected = 'twitter';
+      else if (TIKTOK_RE.test(prefixText)) detected = 'tiktok';
       else if (DISCORD_DCE_RE.test(prefixText)) detected = 'discord';
       else if (TG_CHAT_RE.test(prefixText)) detected = 'tg_chat';
     }

@@ -10,7 +10,8 @@ export type ExportFormat =
   | 'discord'
   | 'spotify'
   | 'youtube'
-  | 'tiktok';
+  | 'tiktok'
+  | 'twitter';
 
 export type ThreadKind =
   | 'personal_chat'
@@ -20,7 +21,8 @@ export type ThreadKind =
   | 'antigravity_session'
   | 'channel'
   | 'streaming'
-  | 'video';
+  | 'video'
+  | 'social';
 
 export type EventKind = 'message' | 'service' | 'visit';
 
@@ -35,6 +37,7 @@ export type DemoKind =
   | 'youtube'
   | 'spotify'
   | 'tiktok'
+  | 'twitter'
   | 'chrome';
 
 export type TabId = 'overview' | 'behavior' | 'lexicon' | 'sql';
@@ -309,6 +312,38 @@ export interface TikTokLensMetrics {
   bingeStreaks: YouTubeBingeStreak[];
 }
 
+export interface TwitterHandleStat {
+  handle: string;
+  count: number;
+  sharePct: number;
+}
+
+export interface TwitterSourceStat {
+  source: string;
+  count: number;
+  sharePct: number;
+}
+
+export interface TwitterViralPost {
+  text: string;
+  likes: number;
+  ts: number;
+  kind: string;
+}
+
+export interface TwitterLensMetrics {
+  totalTweets: number;
+  originalTweets: number;
+  replyTweets: number;
+  retweetTweets: number;
+  totalLikesGiven: number;
+  totalLikesReceived: number;
+  uniqueHandles: number;
+  topHandles: TwitterHandleStat[];
+  topSources: TwitterSourceStat[];
+  topViralPosts: TwitterViralPost[];
+}
+
 export interface LexiconMetrics {
   topWords: WordFrequency[];
   wordsByYear: YearlyWords[];
@@ -320,6 +355,7 @@ export interface LexiconMetrics {
   spotifyLens?: SpotifyLensMetrics;
   youtubeLens?: YouTubeLensMetrics;
   tiktokLens?: TikTokLensMetrics;
+  twitterLens?: TwitterLensMetrics;
 }
 
 export type SqlCellValue = string | number | boolean | null;

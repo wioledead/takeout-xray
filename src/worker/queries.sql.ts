@@ -583,6 +583,56 @@ export function buildLexiconSql(scope: QueryScope) {
       ORDER BY streakCount DESC, startTs DESC
       LIMIT 10;
     `,
+    twitterStats: `
+      SELECT
+        COUNT(*) FILTER (WHERE platform IN ('tweet', 'reply', 'retweet')) AS totalTweets,
+        COUNT(*) FILTER (WHERE platform = 'tweet') AS originalTweets,
+        COUNT(*) FILTER (WHERE platform = 'reply') AS replyTweets,
+        COUNT(*) FILTER (WHERE platform = 'retweet') AS retweetTweets,
+        COUNT(*) FILTER (WHERE platform = 'like') AS totalLikesGiven,
+        COALESCE(SUM(ms_played) FILTER (WHERE platform IN ('tweet', 'reply')), 0) AS totalLikesReceived,
+        COUNT(DISTINCT creator_name) FILTER (
+          WHERE creator_name LIKE '@%' AND creator_name != '@self' AND creator_name != '@liked'
+        ) AS uniqueHandles
+      FROM media_events
+      WHERE ${ew} AND source_type = 'twitter';
+    `,
+    twitterTopHandles: `
+      SELECT
+        creator_name AS handle,
+        COUNT(*) AS count,
+        SUM(COUNT(*)) OVER () AS totalHits
+      FROM media_events
+      WHERE ${ew} AND source_type = 'twitter'
+        AND creator_name LIKE '@%'
+        AND creator_name != '@self'
+        AND creator_name != '@liked'
+      GROUP BY creator_name
+      ORDER BY count DESC, handle ASC
+      LIMIT 12;
+    `,
+    twitterTopSources: `
+      SELECT
+        COALESCE(album_or_sub, 'X Web') AS source,
+        COUNT(*) AS count,
+        SUM(COUNT(*)) OVER () AS totalPosts
+      FROM media_events
+      WHERE ${ew} AND source_type = 'twitter' AND platform IN ('tweet', 'reply', 'retweet')
+      GROUP BY 1
+      ORDER BY count DESC, source ASC
+      LIMIT 8;
+    `,
+    twitterTopViral: `
+      SELECT
+        item_title AS text,
+        ms_played AS likes,
+        ts_ms AS ts,
+        platform AS kind
+      FROM media_events
+      WHERE ${ew} AND source_type = 'twitter' AND platform IN ('tweet', 'reply')
+      ORDER BY ms_played DESC, ts_ms DESC
+      LIMIT 6;
+    `,
   };
 }
 
@@ -812,6 +862,20 @@ FROM media_events
 WHERE source_type IN ('youtube', 'tiktok')
 GROUP BY creator_name
 ORDER BY videos DESC
+LIMIT 25;`,
+    },
+    {
+      id: 'twitterPosts',
+      sql: `SELECT
+  platform AS post_type,
+  creator_name AS target_handle,
+  COALESCE(album_or_sub, 'X Web') AS client,
+  ms_played AS likes_received,
+  epoch_ms(ts_ms + ${off}) AS posted_at,
+  item_title AS tweet_text
+FROM media_events
+WHERE source_type = 'twitter'
+ORDER BY ms_played DESC, ts_ms DESC
 LIMIT 25;`,
     },
   ];

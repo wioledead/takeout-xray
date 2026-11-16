@@ -1404,6 +1404,175 @@ export function generateTikTokDemo(): DemoDataset {
   return { format: 'tiktok', threads, events, mediaEvents };
 }
 
+export function generateTwitterDemo(): DemoDataset {
+  const rng = createRng(0x58545754);
+  const threads: NormalizedThread[] = [
+    {
+      thread_id: 'twitter_posts',
+      source_type: 'twitter',
+      title: 'X / Twitter Posts & Replies',
+      thread_kind: 'social',
+      extra_count: 0,
+    },
+    {
+      thread_id: 'twitter_likes',
+      source_type: 'twitter',
+      title: 'X / Twitter Likes',
+      thread_kind: 'social',
+      extra_count: 0,
+    },
+  ];
+
+  const handles = ['@karpathy', '@levelsio', '@antirez', '@dan_abramov', '@simonw', '@mitsuhiko'];
+  const clients = ['Twitter Web App', 'Twitter for iPhone', 'Twitter for Android', 'TweetDeck'];
+  const originalTweets = [
+    'Just benchmarked DuckDB-Wasm running SQL window functions over 200k local rows inside a Web Worker — zero server round-trips 🚀 https://github.com/wioledead/takeout-xray',
+    'Local-first analytics feels like cheating: drop a 500MB Google Takeout zip and keep 100% of your data on your own CPU.',
+    'Daily reminder that streaming JSON parsers beat JSON.parse() whenever you touch decade-old exports from https://news.ycombinator.com 🔥',
+    'Late-night debugging thoughts: why do we upload private archives to SaaS dashboards when WASM is right here in the browser?',
+    'Weekend build log: wired up Snowflake ID timestamp decoding for Twitter likes with bitwise BigInt shifts ✨ https://arxiv.org/abs/2401.00001',
+    'Nothing beats a clean dark dashboard with monospace tabular-nums and sub-100ms SQL aggregations.',
+  ];
+  const replyTemplates = [
+    'Totally agree — streaming directly from the zip central directory keeps peak RSS tiny!',
+    'Tried this pattern on Chrome history + Spotify streams and got sub-second cold start ⚡',
+    'Curious how you handled chunk boundaries on UTF-8 multi-byte emojis without regex backtracking?',
+    'Same here, local SQLite and DuckDB are replacing whole backend stacks this year 😂',
+  ];
+  const rtBodies = [
+    'RT @karpathy: Zero-copy browser compute plus local SQL engines is quietly unlocking personal software again.',
+    'RT @levelsio: Ship small, keep infra at zero dollars, let users inspect everything on their own machine.',
+    'RT @simonw: DuckDB reading newline-delimited JSON in WebAssembly is astonishingly fast.',
+    'RT @antirez: Simplicity in data formats ages ten times better than clever schemas.',
+  ];
+  const likedSnippets = [
+    'Thread on streaming binary decompression vs loading full blobs into browser memory.',
+    'Why 24x7 circadian heatmaps expose late-night coding binges better than calendar apps.',
+    'Minimalist dark UI design tokens & monospace typography checklist for dev tools.',
+    'How Twitter Snowflake IDs encode creation timestamps down to the millisecond.',
+  ];
+
+  const events: NormalizedEvent[] = [];
+  const mediaEvents: NormalizedMediaEvent[] = [];
+  let ts = Date.UTC(2024, 2, 1, 10, 0, 0);
+  let seq = 0;
+
+  while (seq < 1200) {
+    const gapHours = rng() < 0.16 ? 20 + Math.floor(rng() * 36) : 2 + Math.floor(rng() * 14);
+    ts += gapHours * 3600_000 + Math.floor(rng() * 1800_000);
+    const d = new Date(ts);
+    const preferredHour = rng() < 0.34 ? (22 + (seq % 5)) % 24 : 11 + (seq % 11);
+    d.setUTCHours(preferredHour, Math.floor(rng() * 60), 0, 0);
+    ts = Math.max(ts + 30_000, d.getTime());
+
+    const roll = rng();
+    const kind: 'tweet' | 'reply' | 'retweet' =
+      roll < 0.44 ? 'tweet' : roll < 0.78 ? 'reply' : 'retweet';
+    const client =
+      rng() < 0.48
+        ? clients[0]
+        : rng() < 0.8
+          ? clients[1]
+          : rng() < 0.94
+            ? clients[2]
+            : clients[3];
+
+    let targetHandle = '@self';
+    let text = '';
+    if (kind === 'retweet') {
+      const rtText = pick(rng, rtBodies);
+      const rtHandleMatch = rtText.match(/^RT\s+(@[A-Za-z0-9_]+)/);
+      targetHandle = rtHandleMatch ? rtHandleMatch[1] : pick(rng, handles);
+      text = rtText;
+    } else if (kind === 'reply') {
+      targetHandle = pick(rng, handles);
+      text = `${targetHandle} ${pick(rng, replyTemplates)}`;
+    } else {
+      const mentionSomeone = rng() < 0.25 ? pick(rng, handles) : '@self';
+      targetHandle = mentionSomeone;
+      const baseText = pick(rng, originalTweets);
+      text = mentionSomeone === '@self' ? baseText : `${baseText} cc ${mentionSomeone}`;
+    }
+
+    const isViral = kind === 'tweet' && rng() < 0.08;
+    const likesReceived =
+      kind === 'retweet'
+        ? 0
+        : isViral
+          ? 140 + Math.floor(rng() * 1200)
+          : Math.floor(rng() * (kind === 'tweet' ? 38 : 14));
+    const hasMedia = kind !== 'retweet' && rng() < 0.18;
+    const rowId = `tw_d_${seq++}`;
+    const senderLabel =
+      kind === 'tweet' && targetHandle === '@self' ? 'Original Posts' : targetHandle;
+
+    events.push(
+      makeDemoEvent({
+        id: rowId,
+        threadId: 'twitter_posts',
+        sourceType: 'twitter',
+        eventKind: kind === 'retweet' ? 'service' : 'message',
+        tsMs: ts,
+        senderId: `tw_${senderLabel}`,
+        senderName: senderLabel,
+        text,
+        hasMedia,
+        metaSubtype: kind,
+      }),
+    );
+
+    mediaEvents.push({
+      media_id: rowId,
+      thread_id: 'twitter_posts',
+      source_type: 'twitter',
+      ts_ms: ts,
+      creator_name: targetHandle,
+      item_title: text,
+      album_or_sub: client,
+      ms_played: likesReceived,
+      is_skipped: kind === 'retweet',
+      is_shuffle: hasMedia,
+      platform: kind,
+    });
+
+    if (rng() < 0.34 && seq < 1200) {
+      const likeId = `tw_like_d_${seq++}`;
+      const likedAuthor = pick(rng, handles);
+      const likeText = pick(rng, likedSnippets);
+      const likeTs = ts + 45_000;
+      events.push(
+        makeDemoEvent({
+          id: likeId,
+          threadId: 'twitter_likes',
+          sourceType: 'twitter',
+          eventKind: 'service',
+          tsMs: likeTs,
+          senderId: `tw_${likedAuthor}`,
+          senderName: likedAuthor,
+          text: likeText,
+          domain: 'x.com',
+          metaSubtype: 'like',
+        }),
+      );
+      mediaEvents.push({
+        media_id: likeId,
+        thread_id: 'twitter_likes',
+        source_type: 'twitter',
+        ts_ms: likeTs,
+        creator_name: likedAuthor,
+        item_title: likeText,
+        album_or_sub: 'Like',
+        ms_played: 0,
+        is_skipped: false,
+        is_shuffle: false,
+        platform: 'like',
+      });
+    }
+  }
+
+  return { format: 'twitter', threads, events, mediaEvents };
+}
+
 export function generateDemoDataset(kind: DemoKind): DemoDataset {
   switch (kind) {
     case 'telegram':
@@ -1426,6 +1595,8 @@ export function generateDemoDataset(kind: DemoKind): DemoDataset {
       return generateSpotifyDemo();
     case 'tiktok':
       return generateTikTokDemo();
+    case 'twitter':
+      return generateTwitterDemo();
     case 'chrome':
       return generateChromeDemo();
   }

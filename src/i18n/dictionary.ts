@@ -67,6 +67,8 @@ export interface TranslationDictionary {
     demoSpotifyDesc: string;
     demoTiktokTitle: string;
     demoTiktokDesc: string;
+    demoTwitterTitle: string;
+    demoTwitterDesc: string;
     demoChromeTitle: string;
     demoChromeDesc: string;
     demoGuidesTitle: string;
@@ -89,6 +91,7 @@ export interface TranslationDictionary {
     totalVisits: string;
     totalStreams: string;
     totalVideosWatched: string;
+    totalPosts: string;
     activeDays: string;
     totalWords: string;
     uniqueDomains: string;
@@ -120,6 +123,9 @@ export interface TranslationDictionary {
     aiBalanceTitle: string;
     aiBalanceDesc: string;
     turnsCol: string;
+    handlesTitle: string;
+    handlesDesc: string;
+    handleCol: string;
     less: string;
     more: string;
     daysShort: [string, string, string, string, string, string, string];
@@ -155,6 +161,10 @@ export interface TranslationDictionary {
     browserTransitionsDesc: string;
     browserRabbitHolesTitle: string;
     browserRabbitHolesDesc: string;
+    twitterMixTitle: string;
+    twitterMixDesc: string;
+    twitterClientsTitle: string;
+    twitterClientsDesc: string;
     circadianTitle: string;
     circadianDesc: string;
     nightOwlScore: string;
@@ -233,6 +243,16 @@ export interface TranslationDictionary {
     ttUniqueCreators: string;
     ttTopCreators: string;
     ttBingeStreaks: string;
+    twLensTitle: string;
+    twLensDesc: string;
+    twOriginalPosts: string;
+    twReplies: string;
+    twRetweets: string;
+    twLikesGiven: string;
+    twLikesReceived: string;
+    twTopHandles: string;
+    twTopSources: string;
+    twTopViral: string;
   };
   sql: {
     title: string;
@@ -260,6 +280,7 @@ export interface TranslationDictionary {
       antigravityTokens: string;
       spotifyArtists: string;
       youtubeChannels: string;
+      twitterPosts: string;
     };
   };
   networkModal: {
@@ -310,6 +331,9 @@ export interface TranslationDictionary {
     aiCodeDensity: string;
     agCacheHit: string;
     agToolsCount: string;
+    topHandle: string;
+    twPostMix: string;
+    topSources: string;
   };
 }
 
@@ -341,6 +365,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       spotify: 'SPOTIFY HISTORY',
       youtube: 'YOUTUBE HISTORY',
       tiktok: 'TIKTOK EXPORT',
+      twitter: 'X / TWITTER ARCHIVE',
     },
     tabs: {
       overview: 'Overview',
@@ -349,9 +374,9 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       sql: 'SQL Console',
     },
     dropzone: {
-      title: 'DROP ANY EXPORT (.ZIP / JSON / JSONL / TXT) OR FOLDER',
+      title: 'DROP ANY EXPORT (.ZIP / JSON / JS / JSONL / TXT) OR FOLDER',
       subtitle:
-        'Stream-parsed locally in Web Worker + DuckDB-Wasm. Handles 12 platforms including raw .zip Takeout archives, AI coding agents, messengers & media history without uploading a byte.',
+        'Stream-parsed locally in Web Worker + DuckDB-Wasm. Handles 12 platforms (13 export formats) including raw .zip archives, AI agents, messengers, social & media history without uploading a byte.',
       dropActive: 'RELEASE TO INITIATE LOCAL X-RAY SCAN',
       browseBtn: 'Select Files / .ZIP',
       browseFolderBtn: 'Select Folder (Brain / Discord / Claude)',
@@ -368,7 +393,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       zipMultiDesc: 'Multiple datasets found inside archive — select which export to dissect first:',
       zipCancel: 'Cancel',
       zipFilesUnit: 'files',
-      supportedTitle: '12 SUPPORTED FORENSIC FORMATS (.ZIP AUTO-EXTRACTED)',
+      supportedTitle: '12 SUPPORTED PLATFORMS (13 FORMATS · .ZIP AUTO-EXTRACTED)',
       supportedAgents:
         'AI Agents: Antigravity 2.0 (brain/ folder or transcript_full.jsonl) & Claude Code CLI (~/.claude/projects/**/*.jsonl)',
       supportedChats:
@@ -376,8 +401,8 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       supportedAiChats:
         'AI Chats: OpenAI ChatGPT (conversations.json DAG) & Anthropic Claude.ai (conversations.json)',
       supportedMedia:
-        'Browsers & Media: Google Chrome, YouTube (watch-history.json), Spotify (Streaming_History_*.json) & TikTok (user_data_tiktok.json)',
-      demoTitle: 'INSTANT CLIENT-SIDE DEMOS · ALL 11 PLATFORMS (SYNTHETIC DATA)',
+        'Web, Social & Media: X / Twitter (tweets.js / like.js), Chrome, YouTube, Spotify & TikTok',
+      demoTitle: 'INSTANT CLIENT-SIDE DEMOS · ALL 12 PLATFORMS (SYNTHETIC DATA)',
       demoSubtitle:
         'Not sure what works? Pick any platform below to inspect a live synthetic report and see what file format to drop.',
       demoRunBadge: 'DEMO →',
@@ -401,6 +426,8 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       demoSpotifyDesc: '1,400 streams, skip rates & artist obsession',
       demoTiktokTitle: 'TikTok',
       demoTiktokDesc: 'Feed watches, likes, searches & @creator streaks',
+      demoTwitterTitle: 'X (Twitter)',
+      demoTwitterDesc: 'Tweets, replies, retweets, likes & @handles',
       demoChromeTitle: 'Google Chrome',
       demoChromeDesc: '~10,000 browser visits & domain rabbit holes',
       demoGuidesTitle: 'Where to download your archive?',
@@ -418,13 +445,14 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       threadsFound: 'THREADS',
       errorPrefix: 'INGESTION FAILED',
       unsupportedFormat:
-        'Unrecognized archive format. Drop a .zip/.json/.jsonl/.txt export from Antigravity, Claude Code, Telegram, WhatsApp, Discord, ChatGPT, Claude.ai, Chrome, YouTube, Spotify, or TikTok.',
+        'Unrecognized archive format. Drop a .zip/.json/.js/.jsonl/.txt export from Antigravity, Claude Code, Telegram, WhatsApp, Discord, ChatGPT, Claude.ai, X (Twitter), Chrome, YouTube, Spotify, or TikTok.',
     },
     overview: {
       totalEvents: 'Total Events',
       totalVisits: 'Total Visits',
       totalStreams: 'Total Streams',
       totalVideosWatched: 'Videos Watched',
+      totalPosts: 'Posts & Likes',
       activeDays: 'Active Days',
       totalWords: 'Total Words',
       uniqueDomains: 'Media / Domains',
@@ -456,6 +484,9 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       aiBalanceTitle: 'User vs AI Turn Balance',
       aiBalanceDesc: 'Prompt & reply volume comparison',
       turnsCol: 'Turns',
+      handlesTitle: 'Top Mentioned & Replied @Handles',
+      handlesDesc: 'Accounts you replied to, retweeted, or mentioned most',
+      handleCol: '@Handle',
       less: 'Quiet',
       more: 'Peak',
       daysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -491,6 +522,10 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       browserTransitionsDesc: 'How browsing sessions started (clicked links, typed URLs, reloads)',
       browserRabbitHolesTitle: 'Consecutive Domain Rabbit Holes',
       browserRabbitHolesDesc: 'Deepest unbroken visit streaks on a single website',
+      twitterMixTitle: 'Posting Style Breakdown (Tweets vs Replies vs RT)',
+      twitterMixDesc: 'Ratio of original threads, replies, retweets & likes archived',
+      twitterClientsTitle: 'Publishing Clients & Apps',
+      twitterClientsDesc: 'Devices and apps used when posting on X / Twitter',
       circadianTitle: 'Hourly Activity Distribution',
       circadianDesc: '24-hour fingerprint in your local timezone',
       nightOwlScore: 'Night Owl Index (00:00–05:00)',
@@ -571,6 +606,16 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       ttUniqueCreators: 'Identified @Creators',
       ttTopCreators: 'Top @Creators',
       ttBingeStreaks: 'Creator Feed Streaks',
+      twLensTitle: 'X / Twitter Social Forensics Lens',
+      twLensDesc: 'Posts, replies, retweets, Snowflake-dated likes, clients & top viral tweets',
+      twOriginalPosts: 'Original Posts',
+      twReplies: 'Replies',
+      twRetweets: 'Retweets Sent',
+      twLikesGiven: 'Likes Given',
+      twLikesReceived: 'Likes Received ❤️',
+      twTopHandles: 'Most Engaged @Handles',
+      twTopSources: 'Posting Clients',
+      twTopViral: 'Top Performing Posts by Likes',
     },
     sql: {
       title: 'Live DuckDB-Wasm SQL Console',
@@ -598,6 +643,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
         antigravityTokens: 'Agent Tokens & KV Cache by Session',
         spotifyArtists: 'Spotify Top Artists & Hours',
         youtubeChannels: 'YouTube / TikTok Top Channels',
+        twitterPosts: 'X / Twitter Viral Posts & Clients',
       },
     },
     networkModal: {
@@ -648,6 +694,9 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       aiCodeDensity: 'Code Prompts',
       agCacheHit: 'KV Cache Hit',
       agToolsCount: 'Tools Executed',
+      topHandle: 'Top @Handle',
+      twPostMix: 'Post / Reply / RT',
+      topSources: 'Top Clients',
     },
   },
   ru: {
@@ -677,6 +726,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       spotify: 'ИСТОРИЯ SPOTIFY',
       youtube: 'ИСТОРИЯ YOUTUBE',
       tiktok: 'ЭКСПОРТ TIKTOK',
+      twitter: 'АРХИВ X / TWITTER',
     },
     tabs: {
       overview: 'Обзор',
@@ -685,9 +735,9 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       sql: 'SQL Консоль',
     },
     dropzone: {
-      title: 'ПЕРЕТАЩИТЕ ЭКСПОРТ (.ZIP / JSON / JSONL / TXT) ИЛИ ПАПКУ',
+      title: 'ПЕРЕТАЩИТЕ ЭКСПОРТ (.ZIP / JSON / JS / JSONL / TXT) ИЛИ ПАПКУ',
       subtitle:
-        'Потоковый парсинг в Web Worker + DuckDB-Wasm. 12 сервисов: сырые .zip-архивы Takeout, ИИ-агенты, мессенджеры и медиа-история — без единого байта в сеть.',
+        'Потоковый парсинг в Web Worker + DuckDB-Wasm. 12 сервисов (13 форматов выгрузки): сырые .zip-архивы, ИИ-агенты, мессенджеры, соцсети и медиа — без единого байта в сеть.',
       dropActive: 'ОТПУСТИТЕ ФАЙЛ, .ZIP ИЛИ ПАПКУ ДЛЯ СКАНИРОВАНИЯ',
       browseBtn: 'Выбрать файлы / .ZIP',
       browseFolderBtn: 'Выбрать папку (brain / Discord / Claude)',
@@ -704,7 +754,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       zipMultiDesc: 'В архиве сразу несколько выгрузок — выберите, что разобрать первым:',
       zipCancel: 'Отмена',
       zipFilesUnit: 'файл.',
-      supportedTitle: '12 ПОДДЕРЖИВАЕМЫХ ФОРМАТОВ (+ ПОТОКОВЫЙ .ZIP)',
+      supportedTitle: '12 ПОДДЕРЖИВАЕМЫХ СЕРВИСОВ (13 ФОРМАТОВ · .ZIP АВТО)',
       supportedAgents:
         'ИИ-агенты: Antigravity 2.0 (папка brain/ или transcript_full.jsonl) и Claude Code CLI (~/.claude/projects/**/*.jsonl)',
       supportedChats:
@@ -712,8 +762,8 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       supportedAiChats:
         'ИИ-чаты: OpenAI ChatGPT (conversations.json DAG) и Anthropic Claude.ai (conversations.json)',
       supportedMedia:
-        'Браузер и медиа: Chrome, YouTube (watch-history.json), Spotify (Streaming_History_*.json) и TikTok (user_data_tiktok.json)',
-      demoTitle: 'МГНОВЕННЫЕ ДЕМО · ВСЕ 11 ПЛАТФОРМ (СИНТЕТИКА)',
+        'Веб, соцсети и медиа: X / Twitter (tweets.js / like.js), Chrome, YouTube, Spotify и TikTok',
+      demoTitle: 'МГНОВЕННЫЕ ДЕМО · ВСЕ 12 СЕРВИСОВ (СИНТЕТИКА)',
       demoSubtitle:
         'Неясно, что сюда можно закинуть? Нажмите на любой сервис — запустится демо-отчёт и виден нужный формат файла.',
       demoRunBadge: 'ДЕМО →',
@@ -737,6 +787,8 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       demoSpotifyDesc: '1 400 прослушиваний, скипы и топ-артисты',
       demoTiktokTitle: 'TikTok',
       demoTiktokDesc: 'Лента просмотров, лайки, поиск и серии @авторов',
+      demoTwitterTitle: 'X (Twitter)',
+      demoTwitterDesc: 'Твиты, реплаи, ретвиты, лайки и @аккаунты',
       demoChromeTitle: 'Google Chrome',
       demoChromeDesc: '~10 000 визитов и «кроличьих нор» доменов',
       demoGuidesTitle: 'Где скачать свои архивы?',
@@ -754,13 +806,14 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       threadsFound: 'ДИАЛОГОВ',
       errorPrefix: 'ОШИБКА ИМПОРТА',
       unsupportedFormat:
-        'Неизвестная структура экспорта. Поддерживаются .zip/.json/.jsonl/.txt из Antigravity, Claude Code, Telegram, WhatsApp, Discord, ChatGPT, Claude.ai, Chrome, YouTube, Spotify и TikTok.',
+        'Неизвестная структура экспорта. Поддерживаются .zip/.json/.js/.jsonl/.txt из Antigravity, Claude Code, Telegram, WhatsApp, Discord, ChatGPT, Claude.ai, X (Twitter), Chrome, YouTube, Spotify и TikTok.',
     },
     overview: {
       totalEvents: 'Всего событий',
       totalVisits: 'Всего визитов',
       totalStreams: 'Прослушиваний',
       totalVideosWatched: 'Просмотров видео',
+      totalPosts: 'Посты и лайки',
       activeDays: 'Активных дней',
       totalWords: 'Всего слов',
       uniqueDomains: 'Медиа / домены',
@@ -792,6 +845,9 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       aiBalanceTitle: 'Баланс: Пользователь и ИИ',
       aiBalanceDesc: 'Сравнение объёма ваших запросов и ответов модели',
       turnsCol: 'Реплики',
+      handlesTitle: 'Топ @аккаунтов и упоминаний',
+      handlesDesc: 'С кем вы чаще всего переписывались в реплаях и кого ретвитили',
+      handleCol: '@Аккаунт',
       less: 'Тише',
       more: 'Пик',
       daysShort: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -827,6 +883,10 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       browserTransitionsDesc: 'Клик по ссылке, прямой ввод URL в строку, перезагрузка и др.',
       browserRabbitHolesTitle: 'Самые глубокие «кроличьи норы»',
       browserRabbitHolesDesc: 'Длинные серии переходов подряд внутри одного домена',
+      twitterMixTitle: 'Структура активности (Твиты / Реплаи / Ретвиты)',
+      twitterMixDesc: 'Баланс авторских постов, ответов в тредах, ретвитов и лайков',
+      twitterClientsTitle: 'Клиенты и устройства постинга',
+      twitterClientsDesc: 'С каких приложений и устройств публиковались посты в X',
       circadianTitle: 'Суточный профиль активности',
       circadianDesc: 'Распределение по часам в локальном часовом поясе',
       nightOwlScore: 'Индекс «Совы» (00:00–05:00)',
@@ -907,6 +967,16 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       ttUniqueCreators: 'Замечено @авторов',
       ttTopCreators: 'Топ @авторов',
       ttBingeStreaks: 'Серии на одном авторе',
+      twLensTitle: 'Спец-аналитика X / Twitter',
+      twLensDesc: 'Посты, реплаи, ретвиты, лайки с датами Snowflake, клиенты и главные виральные твиты',
+      twOriginalPosts: 'Авторских постов',
+      twReplies: 'Ответов (Replies)',
+      twRetweets: 'Ретвитов (RT)',
+      twLikesGiven: 'Лайков поставлено',
+      twLikesReceived: 'Лайков получено ❤️',
+      twTopHandles: 'Главные @аккаунты (реплаи / RT)',
+      twTopSources: 'Клиенты постинга',
+      twTopViral: 'Топ виральных постов по лайкам',
     },
     sql: {
       title: 'SQL-консоль DuckDB-Wasm',
@@ -934,6 +1004,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
         antigravityTokens: 'Токены и KV-кэш агентов по сессиям',
         spotifyArtists: 'Топ артистов и часов Spotify',
         youtubeChannels: 'Топ каналов YouTube / TikTok',
+        twitterPosts: 'X / Twitter виральные твиты и клиенты',
       },
     },
     networkModal: {
@@ -984,6 +1055,9 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
       aiCodeDensity: 'Доля с кодом',
       agCacheHit: 'Попадание в кэш',
       agToolsCount: 'Вызовов тулзов',
+      topHandle: 'Топ @аккаунт',
+      twPostMix: 'Пост / Реплай / RT',
+      topSources: 'Топ клиенты',
     },
   },
 };

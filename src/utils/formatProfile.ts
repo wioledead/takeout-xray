@@ -6,7 +6,8 @@ export type ServiceArchetype =
   | 'coding_agent'
   | 'media_video'
   | 'media_audio'
-  | 'browser';
+  | 'browser'
+  | 'social_feed';
 
 export interface FormatProfile {
   archetype: ServiceArchetype;
@@ -118,6 +119,14 @@ const PROFILES: Record<ExportFormat, FormatProfile> = {
     hasMonologues: false,
     hasQuestionRate: false,
     preferredSqlPresetIds: ['domains', 'lateNight', 'hourlyVolume'],
+  },
+  twitter: {
+    archetype: 'social_feed',
+    hasInitiators: false,
+    hasReplyLatency: false,
+    hasMonologues: false,
+    hasQuestionRate: false,
+    preferredSqlPresetIds: ['twitterPosts', 'domains', 'lateNight', 'emojis', 'hourlyVolume'],
   },
 };
 

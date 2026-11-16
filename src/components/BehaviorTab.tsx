@@ -1,4 +1,5 @@
 import {
+  AtSign,
   Clock,
   Flame,
   Globe,
@@ -6,6 +7,7 @@ import {
   Music,
   PlayCircle,
   Repeat,
+  Smartphone,
   Terminal,
   Zap,
 } from 'lucide-react';
@@ -579,6 +581,100 @@ export function BehaviorTab({ format, behavior, lexicon }: BehaviorTabProps) {
                   <span className="rounded border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-2 py-0.5 text-[#F59E0B]">
                     {rh.streakCount} {t.lexicon.streak}
                   </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {profile.archetype === 'social_feed' && lexicon?.twitterLens && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#38BDF8]">
+              <AtSign className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.twitterMixTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.twitterMixDesc}</p>
+
+            {(() => {
+              const tw = lexicon.twitterLens;
+              const total = Math.max(1, tw.originalTweets + tw.replyTweets + tw.retweetTweets);
+              const items = [
+                { label: t.lexicon.twOriginalPosts, value: tw.originalTweets, color: '#00FF9D' },
+                { label: t.lexicon.twReplies, value: tw.replyTweets, color: '#38BDF8' },
+                { label: t.lexicon.twRetweets, value: tw.retweetTweets, color: '#A855F7' },
+              ];
+              return (
+                <div className="mt-4 space-y-3 font-mono text-xs">
+                  <div className="flex h-3.5 w-full overflow-hidden rounded-full border border-[#1E293B] bg-[#07090D]">
+                    {items.map((it) => (
+                      <div
+                        key={it.label}
+                        style={{
+                          width: `${(it.value * 100) / total}%`,
+                          backgroundColor: it.color,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                      <div className="text-[10px] text-slate-400">{t.lexicon.twOriginalPosts}</div>
+                      <div className="mt-1 text-base font-bold text-[#00FF9D]">
+                        {tw.originalTweets.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                      <div className="text-[10px] text-slate-400">{t.lexicon.twReplies}</div>
+                      <div className="mt-1 text-base font-bold text-[#38BDF8]">
+                        {tw.replyTweets.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                      <div className="text-[10px] text-slate-400">{t.lexicon.twRetweets}</div>
+                      <div className="mt-1 text-base font-bold text-[#A855F7]">
+                        {tw.retweetTweets.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded border border-[#1E293B] bg-[#07090D] p-3">
+                      <div className="text-[10px] text-slate-400">{t.lexicon.twLikesGiven}</div>
+                      <div className="mt-1 text-base font-bold text-[#F43F5E]">
+                        {tw.totalLikesGiven.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="rounded-lg border border-[#1E293B] bg-[#0D1117] p-5">
+            <div className="flex items-center gap-2 text-[#00FF9D]">
+              <Smartphone className="h-4 w-4" />
+              <h2 className="font-mono text-sm font-bold text-slate-100">
+                {t.behavior.twitterClientsTitle}
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-400">{t.behavior.twitterClientsDesc}</p>
+
+            <div className="mt-4 space-y-2.5">
+              {lexicon.twitterLens.topSources.map((src) => (
+                <div key={src.source} className="font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="truncate text-slate-200">{src.source}</span>
+                    <span className="text-[#38BDF8]">
+                      {src.count.toLocaleString()} ({src.sharePct}%)
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#1E293B]">
+                    <div
+                      className="h-full bg-[#38BDF8]"
+                      style={{ width: `${Math.min(100, src.sharePct)}%` }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

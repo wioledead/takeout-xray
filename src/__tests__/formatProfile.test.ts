@@ -16,6 +16,7 @@ const ALL_FORMATS: ExportFormat[] = [
   'tiktok',
   'spotify',
   'chrome_history',
+  'twitter',
 ];
 
 describe('getFormatProfile domain adaptation', () => {
@@ -37,8 +38,8 @@ describe('getFormatProfile domain adaptation', () => {
     }
   });
 
-  it('disables reply latency, monologues, and question rate on media and browser logs', () => {
-    const mediaAndBrowser: ExportFormat[] = ['youtube', 'tiktok', 'spotify', 'chrome_history'];
+  it('disables reply latency, monologues, and question rate on media, browser, and social feed logs', () => {
+    const mediaAndBrowser: ExportFormat[] = ['youtube', 'tiktok', 'spotify', 'chrome_history', 'twitter'];
 
     for (const f of mediaAndBrowser) {
       const p = getFormatProfile(f);

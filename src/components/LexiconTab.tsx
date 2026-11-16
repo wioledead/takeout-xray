@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  AtSign,
   Bot,
   Film,
   Globe,
@@ -619,6 +620,138 @@ export function LexiconTab({ format, lexicon }: LexiconTabProps) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {lexicon.twitterLens && (
+        <div className="rounded-lg border border-[#38BDF8]/40 bg-[#0D1117] p-5">
+          <div className="flex items-center gap-2 text-[#38BDF8]">
+            <AtSign className="h-4 w-4" />
+            <h2 className="font-mono text-sm font-bold">{t.lexicon.twLensTitle}</h2>
+          </div>
+          <p className="mt-0.5 text-xs text-slate-400">{t.lexicon.twLensDesc}</p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded border border-[#1E293B] bg-[#07090D] p-3.5">
+              <div className="text-[11px] text-slate-400">{t.lexicon.twOriginalPosts}</div>
+              <div className="mt-1.5 font-mono text-2xl font-bold text-[#00FF9D]">
+                {lexicon.twitterLens.originalTweets.toLocaleString()}
+              </div>
+            </div>
+            <div className="rounded border border-[#1E293B] bg-[#07090D] p-3.5">
+              <div className="text-[11px] text-slate-400">{t.lexicon.twReplies}</div>
+              <div className="mt-1.5 font-mono text-2xl font-bold text-[#38BDF8]">
+                {lexicon.twitterLens.replyTweets.toLocaleString()}
+              </div>
+            </div>
+            <div className="rounded border border-[#1E293B] bg-[#07090D] p-3.5">
+              <div className="text-[11px] text-slate-400">{t.lexicon.twRetweets}</div>
+              <div className="mt-1.5 font-mono text-2xl font-bold text-[#A855F7]">
+                {lexicon.twitterLens.retweetTweets.toLocaleString()}
+              </div>
+            </div>
+            <div className="rounded border border-[#1E293B] bg-[#07090D] p-3.5">
+              <div className="text-[11px] text-slate-400">{t.lexicon.twLikesGiven}</div>
+              <div className="mt-1.5 font-mono text-2xl font-bold text-slate-100">
+                {lexicon.twitterLens.totalLikesGiven.toLocaleString()}
+              </div>
+            </div>
+            <div className="rounded border border-[#1E293B] bg-[#07090D] p-3.5">
+              <div className="text-[11px] text-slate-400">{t.lexicon.twLikesReceived}</div>
+              <div className="mt-1.5 font-mono text-2xl font-bold text-[#F43F5E]">
+                {lexicon.twitterLens.totalLikesReceived.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {lexicon.twitterLens.topHandles.length > 0 && (
+              <div className="rounded border border-[#1E293B] bg-[#07090D] p-4">
+                <h3 className="font-mono text-xs font-bold text-slate-200">
+                  {t.lexicon.twTopHandles}
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {lexicon.twitterLens.topHandles.slice(0, 8).map((h) => (
+                    <div key={h.handle} className="font-mono text-xs">
+                      <div className="flex justify-between">
+                        <span className="truncate text-slate-200">{h.handle}</span>
+                        <span className="text-[#38BDF8]">
+                          {h.count.toLocaleString()} ({h.sharePct}%)
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1 w-full rounded-full bg-[#1E293B]">
+                        <div
+                          className="h-full rounded-full bg-[#38BDF8]"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              Math.round(
+                                (h.count /
+                                  Math.max(1, lexicon.twitterLens?.topHandles[0]?.count ?? 1)) *
+                                  100,
+                              ),
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {lexicon.twitterLens.topSources.length > 0 && (
+              <div className="rounded border border-[#1E293B] bg-[#07090D] p-4">
+                <h3 className="font-mono text-xs font-bold text-slate-200">
+                  {t.lexicon.twTopSources}
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {lexicon.twitterLens.topSources.map((src) => (
+                    <div key={src.source} className="font-mono text-xs">
+                      <div className="flex justify-between">
+                        <span className="truncate text-slate-200">{src.source}</span>
+                        <span className="text-[#00FF9D]">
+                          {src.count.toLocaleString()} ({src.sharePct}%)
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1 w-full rounded-full bg-[#1E293B]">
+                        <div
+                          className="h-full rounded-full bg-[#00FF9D]"
+                          style={{ width: `${Math.min(100, src.sharePct)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {lexicon.twitterLens.topViralPosts.length > 0 && (
+            <div className="mt-4 rounded border border-[#1E293B] bg-[#07090D] p-4">
+              <h3 className="font-mono text-xs font-bold text-slate-200">
+                {t.lexicon.twTopViral}
+              </h3>
+              <div className="mt-3 space-y-2">
+                {lexicon.twitterLens.topViralPosts.slice(0, 5).map((vp, idx) => (
+                  <div
+                    key={`${vp.ts}-${idx}`}
+                    className="flex items-start justify-between gap-3 rounded border border-[#1E293B]/70 bg-[#0D1117] px-3 py-2.5 font-mono text-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="line-clamp-2 text-slate-200">{vp.text}</div>
+                      <div className="mt-1 text-[10px] text-slate-500">
+                        {vp.kind.toUpperCase()} · {formatLocalDate(vp.ts)}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded border border-[#F43F5E]/40 bg-[#F43F5E]/10 px-2 py-0.5 text-[#F43F5E]">
+                      ❤️ {vp.likes.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

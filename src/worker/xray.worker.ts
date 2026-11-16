@@ -26,6 +26,7 @@ import { parseDiscordStream } from './adapters/discord';
 import { parseSpotifyStream } from './adapters/spotify';
 import { parseTelegramStream } from './adapters/telegram';
 import { parseTikTokStream } from './adapters/tiktok';
+import { parseTwitterStream } from './adapters/twitter';
 import { parseWhatsAppStream } from './adapters/whatsapp';
 import { parseYouTubeStream } from './adapters/youtube';
 import { XRayEngine, type DuckDBBackend, type DuckDBTableLike } from './engine';
@@ -35,6 +36,7 @@ const MULTI_FILE_FORMATS = new Set<ExportFormat>([
   'claude_code',
   'discord',
   'spotify',
+  'twitter',
 ]);
 
 const DISCORD_INDEX_RE = /(?:^|[\\/])messages[\\/]index\.json$/i;
@@ -218,6 +220,13 @@ async function runAdapterForFormat(
       return;
     case 'tiktok':
       await parseTikTokStream({
+        ...baseOpts,
+        sessionHint: hint,
+        onMediaBatch: callbacks.onMediaBatch,
+      });
+      return;
+    case 'twitter':
+      await parseTwitterStream({
         ...baseOpts,
         sessionHint: hint,
         onMediaBatch: callbacks.onMediaBatch,

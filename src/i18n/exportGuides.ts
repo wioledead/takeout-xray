@@ -11,7 +11,8 @@ export type GuideServiceId =
   | 'chrome_history'
   | 'youtube'
   | 'spotify'
-  | 'tiktok';
+  | 'tiktok'
+  | 'twitter';
 
 export interface ExportGuidePath {
   label: string;
@@ -164,6 +165,18 @@ export const EXPORT_GUIDES: Record<Language, ExportGuideEntry[]> = {
       ],
       tip: 'Make sure "JSON" is selected instead of "TXT" before requesting the TikTok archive.',
     },
+    {
+      id: 'twitter',
+      name: 'X (Twitter)',
+      badgeColor: '#38BDF8',
+      expectedFiles: '.zip · data/tweets.js · data/like.js · data/direct-messages.js',
+      steps: [
+        'Open X (x.com) → More → Settings and privacy → Your account → Download an archive of your data.',
+        'Verify your password/2FA code and click Request archive (X prepares the .zip within ~24 hours).',
+        'Drop the downloaded .zip directly here — or select data/tweets.js, data/like.js, and data/direct-messages.js together.',
+      ],
+      tip: 'Official X archives wrap JSON inside `window.YTD.tweets.part0 = [...]` JavaScript files — the local parser strips that wrapper automatically.',
+    },
   ],
   ru: [
     {
@@ -299,6 +312,18 @@ export const EXPORT_GUIDES: Record<Language, ExportGuideEntry[]> = {
         'Перетащите полученный .zip или файл user_data_tiktok.json сюда.',
       ],
       tip: 'Обязательно выберите формат JSON вместо TXT перед отправкой запроса в TikTok.',
+    },
+    {
+      id: 'twitter',
+      name: 'X (Twitter)',
+      badgeColor: '#38BDF8',
+      expectedFiles: '.zip · data/tweets.js · data/like.js · data/direct-messages.js',
+      steps: [
+        'Откройте X (x.com) → Ещё → Настройки и конфиденциальность → Ваша учётная запись → Скачать архив ваших данных.',
+        'Подтвердите пароль/код 2FA и нажмите «Запросить архив» (подготовка занимает около 24 часов).',
+        'Перетащите полученный .zip целиком прямо сюда — либо выберите файлы data/tweets.js, data/like.js и data/direct-messages.js.',
+      ],
+      tip: 'В архиве X файлы начинаются с `window.YTD.tweets.part0 = [...]` — парсер сам отрезает JS-обёртку на лету прямо в браузере.',
     },
   ],
 };

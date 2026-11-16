@@ -45,6 +45,9 @@ function classifyZipPath(path: string): { groupId: string; label: string } | nul
   if (/\.jsonl$/i.test(lower)) {
     return { groupId: 'claude_code', label: 'Claude Code CLI (.jsonl)' };
   }
+  if (/(?:^|\/)(?:data\/)?(?:tweets?(?:-part\d+)?|likes?|direct-messages(?:-part\d+)?)\.js$/i.test(lower)) {
+    return { groupId: 'twitter', label: 'X / Twitter Archive (data/*.js)' };
+  }
   if (/(?:^|\/)(?:_chat|whatsapp chat .*)\.txt$/.test(lower)) {
     return { groupId: 'whatsapp', label: 'WhatsApp (_chat.txt)' };
   }
@@ -106,7 +109,7 @@ export async function inspectZipArchive(zipFile: File): Promise<ZipArchiveGroup[
         existing.entries.push(item);
         existing.totalSizeBytes += entry.uncompressedSize ?? 0;
         groups.set(hit.groupId, existing);
-      } else if (/\.(?:json|jsonl|ndjson|txt)$/i.test(cleanPath)) {
+      } else if (/\.(?:json|jsonl|ndjson|txt|js)$/i.test(cleanPath)) {
         fallbackEntries.push(item);
       }
     }
