@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { BarChart3, BookOpen, Compass, Terminal } from 'lucide-react';
+import { AlertTriangle, BarChart3, BookOpen, Compass, Terminal, X } from 'lucide-react';
 import { xrayClient } from './client/xrayClient';
 import { BehaviorTab } from './components/BehaviorTab';
 import { DropZoneHero } from './components/DropZoneHero';
@@ -100,9 +100,12 @@ export function App() {
   const handleSelectThread = async (threadId: string) => {
     if (!snapshot) return;
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       const next = await xrayClient.getDashboard(threadId);
       setSnapshot(next);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +150,26 @@ export function App() {
         </main>
       ) : (
         <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6">
+          {errorMessage && (
+            <div
+              role="alert"
+              className="mb-4 flex items-center justify-between gap-3 rounded-md border border-[#F59E0B]/40 bg-[#F59E0B]/10 px-4 py-2.5 font-mono text-xs text-[#F59E0B]"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                aria-label={t.shareModal.close}
+                className="rounded p-0.5 text-[#F59E0B]/80 hover:text-[#F59E0B] cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           <nav
             aria-label="Forensic views"
             className="mb-6 flex flex-wrap gap-2 border-b border-[#1E293B] pb-3"

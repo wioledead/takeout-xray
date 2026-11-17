@@ -1,5 +1,9 @@
 /// <reference lib="webworker" />
 import * as duckdb from '@duckdb/duckdb-wasm';
+import duckdbEhWorker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
+import duckdbMvpWorker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
+import duckdbEhWasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
+import duckdbMvpWasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import type {
   DemoKind,
   ExportFormat,
@@ -11,7 +15,7 @@ import type {
 } from '../types/domain';
 import type { IngestFileEntry, WorkerRequest, WorkerResponse } from '../types/rpc';
 import { generateDemoDataset } from '../utils/demoGenerators';
-import { withZipEntryStream } from '../utils/zipExtractor';
+import { withZipSessions, type ZipEntryStreamConsumer } from '../utils/zipExtractor';
 import { parseAntigravityStream } from './adapters/antigravity';
 import { parseChatGptStream } from './adapters/chatgpt';
 import { parseChromeStream } from './adapters/chrome';
@@ -50,26 +54,89 @@ class SkippedZipEntryError extends Error {
 let engineInstance: XRayEngine | null = null;
 let initPromise: Promise<XRayEngine> | null = null;
 
+function isLocalWorkerUrl(rawUrl: string): boolean {
+  if (!rawUrl || rawUrl.startsWith('blob:') || rawUrl.startsWith('data:') || rawUrl.startsWith('/')) {
+    return true;
+  }
+  try {
+    const parsed = new URL(rawUrl, self.location.href);
+    return parsed.origin === self.location.origin;
+  } catch {
+    return true;
+  }
+}
+
+function measureWorkerBodyBytes(body: unknown): number {
+  if (!body) return 0;
+  if (typeof body === 'string') return new TextEncoder().encode(body).byteLength;
+  if (body instanceof ArrayBuffer) return body.byteLength;
+  if (ArrayBuffer.isView(body)) return body.byteLength;
+  if (typeof Blob !== 'undefined' && body instanceof Blob) return body.size;
+  if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) {
+    return new TextEncoder().encode(body.toString()).byteLength;
+  }
+  return 0;
+}
+
+function installWorkerNetworkGuard(): void {
+  if (typeof self.fetch === 'function') {
+    const origFetch = self.fetch.bind(self);
+    self.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      const bytesSent = measureWorkerBodyBytes(init?.body);
+      if (!isLocalWorkerUrl(url)) {
+        const msg: WorkerResponse = { type: 'NETWORK_EVENT', kind: 'fetch', url, bytesSent };
+        self.postMessage(msg);
+        throw new Error(`Blocked non-local worker fetch: ${url}`);
+      }
+      return origFetch(input, init);
+    };
+  }
+
+  if (typeof XMLHttpRequest !== 'undefined') {
+    const origOpen = XMLHttpRequest.prototype.open;
+    const origSend = XMLHttpRequest.prototype.send;
+    const urlMap = new WeakMap<XMLHttpRequest, string>();
+
+    XMLHttpRequest.prototype.open = function (
+      method: string,
+      url: string | URL,
+      async?: boolean,
+      username?: string | null,
+      password?: string | null,
+    ) {
+      urlMap.set(this, typeof url === 'string' ? url : url.href);
+      return origOpen.call(this, method, url, async ?? true, username ?? null, password ?? null);
+    };
+
+    XMLHttpRequest.prototype.send = function (body?: Document | XMLHttpRequestBodyInit | null) {
+      const url = urlMap.get(this) ?? 'unknown';
+      const bytesSent = measureWorkerBodyBytes(body);
+      if (!isLocalWorkerUrl(url)) {
+        const msg: WorkerResponse = { type: 'NETWORK_EVENT', kind: 'xhr', url, bytesSent };
+        self.postMessage(msg);
+        throw new Error(`Blocked non-local worker XHR: ${url}`);
+      }
+      return origSend.call(this, body as XMLHttpRequestBodyInit | null | undefined);
+    };
+  }
+}
+
+installWorkerNetworkGuard();
+
 async function createBrowserDuckDBEngine(): Promise<XRayEngine> {
-  const bundles = duckdb.getJsDelivrBundles();
-  const bundle = await duckdb.selectBundle(bundles);
+  const bundle = await duckdb.selectBundle({
+    mvp: { mainModule: duckdbMvpWasm, mainWorker: duckdbMvpWorker },
+    eh: { mainModule: duckdbEhWasm, mainWorker: duckdbEhWorker },
+  });
 
   if (!bundle.mainWorker) {
     throw new Error('DuckDB-Wasm bundle did not provide a mainWorker URL.');
   }
 
-  const workerBlob = new Blob([`importScripts(${JSON.stringify(bundle.mainWorker)});`], {
-    type: 'text/javascript',
-  });
-  const workerUrl = URL.createObjectURL(workerBlob);
-  const innerWorker = new Worker(workerUrl);
-
+  const innerWorker = new Worker(bundle.mainWorker);
   const db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), innerWorker);
-  try {
-    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-  } finally {
-    URL.revokeObjectURL(workerUrl);
-  }
+  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
   const conn = await db.connect();
 
@@ -118,12 +185,13 @@ function getEntryByteSize(entry: IngestFileEntry): number {
 
 async function readDiscordChannelMap(
   indexEntries: IngestFileEntry[],
+  withZipEntry: ZipEntryStreamConsumer,
 ): Promise<Record<string, string>> {
   const map: Record<string, string> = {};
   for (const entry of indexEntries) {
     try {
       const rawText = entry.zipEntryPath
-        ? await withZipEntryStream(entry.file, entry.zipEntryPath, (stream) =>
+        ? await withZipEntry(entry.file, entry.zipEntryPath, (stream) =>
             new Response(stream).text(),
           )
         : await entry.file.text();
@@ -242,6 +310,7 @@ async function ingestEntriesInWorker(
   engine: XRayEngine,
   entries: IngestFileEntry[],
   tzOffsetMs: number,
+  timeZone?: string,
 ): Promise<{ format: ExportFormat; snapshot: Awaited<ReturnType<XRayEngine['getDashboardSnapshot']>> }> {
   const startTime = performance.now();
   const nonEmptyEntries = entries.filter((e) => getEntryByteSize(e) > 0);
@@ -270,8 +339,9 @@ async function ingestEntriesInWorker(
     elapsedMs: 0,
   });
 
-  const discordChannelMap =
-    indexEntries.length > 0 ? await readDiscordChannelMap(indexEntries) : {};
+  const zipFiles = nonEmptyEntries
+    .filter((e) => Boolean(e.zipEntryPath))
+    .map((e) => e.file);
 
   let detectedFormat: ExportFormat | null = null;
   let activeTotalBytes = totalBytes;
@@ -296,136 +366,145 @@ async function ingestEntriesInWorker(
     });
   };
 
-  const callbacks: AdapterDispatchCallbacks = {
-    onBatch: async (threads, events) => {
-      await engine.ingestBatch(threads, events);
-      threadsFound += threads.length;
-      rowsIngested += events.length;
-      emitProgress('streaming', true);
-    },
-    onStepBatch: async (steps) => {
-      await engine.ingestBatch([], [], steps);
-    },
-    onMediaBatch: async (media) => {
-      await engine.ingestBatch([], [], [], media);
-    },
-    onProgress: (bytesRead) => {
-      currentFileBytes = bytesRead;
-      emitProgress('streaming', false);
-    },
-    discordChannelMap,
-  };
+  await withZipSessions(zipFiles, async (withZipEntry) => {
+    const discordChannelMap =
+      indexEntries.length > 0 ? await readDiscordChannelMap(indexEntries, withZipEntry) : {};
 
-  const hasZipEntries = candidateEntries.some((e) => Boolean(e.zipEntryPath));
+    const callbacks: AdapterDispatchCallbacks = {
+      onBatch: async (threads, events) => {
+        await engine.ingestBatch(threads, events);
+        threadsFound += threads.length;
+        rowsIngested += events.length;
+        emitProgress('streaming', true);
+      },
+      onStepBatch: async (steps) => {
+        await engine.ingestBatch([], [], steps);
+      },
+      onMediaBatch: async (media) => {
+        await engine.ingestBatch([], [], [], media);
+      },
+      onProgress: (bytesRead) => {
+        currentFileBytes = bytesRead;
+        emitProgress('streaming', false);
+      },
+      discordChannelMap,
+    };
 
-  if (!hasZipEntries) {
-    // Fast header-slice detection before resetting DuckDB or opening full file streams.
-    const matchedEntries: Array<{ entry: IngestFileEntry; format: ExportFormat }> = [];
-    for (const entry of candidateEntries) {
-      try {
-        const fmt = await detectFileFormat(entry.file);
-        if (!detectedFormat) {
-          detectedFormat = fmt;
-        }
-        if (fmt === detectedFormat) {
-          matchedEntries.push({ entry, format: fmt });
-        }
-      } catch (err) {
-        if (candidateEntries.length === 1 || !(err instanceof UnsupportedFormatError)) {
-          throw err;
-        }
-      }
-    }
+    const hasZipEntries = candidateEntries.some((e) => Boolean(e.zipEntryPath));
 
-    if (!detectedFormat || matchedEntries.length === 0) {
-      throw new UnsupportedFormatError();
-    }
-
-    const entriesToProcess = MULTI_FILE_FORMATS.has(detectedFormat)
-      ? matchedEntries
-      : [matchedEntries[0]];
-    activeTotalBytes = entriesToProcess.reduce((sum, item) => sum + getEntryByteSize(item.entry), 0);
-
-    await engine.resetSession(detectedFormat);
-
-    for (const { entry, format } of entriesToProcess) {
-      currentFileBytes = 0;
-      const totalFileBytes = entry.file.size;
-      await runAdapterForFormat(format, entry.file.stream(), totalFileBytes, entry, callbacks);
-      completedBytes += totalFileBytes;
-      currentFileBytes = 0;
-    }
-  } else {
-    // Single-pass streaming decompression directly from ZIP entries.
-    let sessionInitialized = false;
-
-    for (const entry of candidateEntries) {
-      if (sessionInitialized && detectedFormat && !MULTI_FILE_FORMATS.has(detectedFormat)) {
-        break;
-      }
-      currentFileBytes = 0;
-      const entrySize = getEntryByteSize(entry);
-
-      try {
-        if (entry.zipEntryPath) {
-          await withZipEntryStream(entry.file, entry.zipEntryPath, async (rawStream, uncompressedBytes) => {
-            const { format, replayStream } = await detectAndWrapStream(rawStream);
-            if (!sessionInitialized) {
-              detectedFormat = format;
-              if (!MULTI_FILE_FORMATS.has(format)) {
-                activeTotalBytes = uncompressedBytes || entrySize;
-              }
-              await engine.resetSession(format);
-              sessionInitialized = true;
-            } else if (format !== detectedFormat) {
-              throw new SkippedZipEntryError();
-            }
-
-            await runAdapterForFormat(
-              format,
-              replayStream,
-              uncompressedBytes || entrySize,
-              entry,
-              callbacks,
-            );
-            completedBytes += uncompressedBytes || entrySize;
-          });
-        } else {
+    if (!hasZipEntries) {
+      // Fast header-slice detection before resetting DuckDB or opening full file streams.
+      const matchedEntries: Array<{ entry: IngestFileEntry; format: ExportFormat }> = [];
+      for (const entry of candidateEntries) {
+        try {
           const fmt = await detectFileFormat(entry.file);
-          if (!sessionInitialized) {
+          if (!detectedFormat) {
             detectedFormat = fmt;
-            if (!MULTI_FILE_FORMATS.has(fmt)) {
-              activeTotalBytes = entrySize;
-            }
-            await engine.resetSession(fmt);
-            sessionInitialized = true;
-          } else if (fmt !== detectedFormat) {
-            continue;
           }
-          await runAdapterForFormat(fmt, entry.file.stream(), entry.file.size, entry, callbacks);
-          completedBytes += entry.file.size;
+          if (fmt === detectedFormat) {
+            matchedEntries.push({ entry, format: fmt });
+          }
+        } catch (err) {
+          if (candidateEntries.length === 1 || !(err instanceof UnsupportedFormatError)) {
+            throw err;
+          }
         }
-      } catch (err) {
-        if (err instanceof SkippedZipEntryError) {
-          continue;
-        }
-        if (candidateEntries.length > 1 && err instanceof UnsupportedFormatError) {
-          continue;
-        }
-        throw err;
-      } finally {
+      }
+
+      if (!detectedFormat || matchedEntries.length === 0) {
+        throw new UnsupportedFormatError();
+      }
+
+      const entriesToProcess = MULTI_FILE_FORMATS.has(detectedFormat)
+        ? matchedEntries
+        : [matchedEntries[0]];
+      activeTotalBytes = entriesToProcess.reduce((sum, item) => sum + getEntryByteSize(item.entry), 0);
+
+      await engine.resetSession(detectedFormat);
+
+      for (const { entry, format } of entriesToProcess) {
+        currentFileBytes = 0;
+        const totalFileBytes = entry.file.size;
+        await runAdapterForFormat(format, entry.file.stream(), totalFileBytes, entry, callbacks);
+        completedBytes += totalFileBytes;
         currentFileBytes = 0;
       }
-    }
+    } else {
+      // Single-pass streaming decompression directly from cached ZIP central directories.
+      let sessionInitialized = false;
 
-    if (!detectedFormat || !sessionInitialized) {
-      throw new UnsupportedFormatError();
+      for (const entry of candidateEntries) {
+        if (sessionInitialized && detectedFormat && !MULTI_FILE_FORMATS.has(detectedFormat)) {
+          break;
+        }
+        currentFileBytes = 0;
+        const entrySize = getEntryByteSize(entry);
+
+        try {
+          if (entry.zipEntryPath) {
+            await withZipEntry(entry.file, entry.zipEntryPath, async (rawStream, uncompressedBytes) => {
+              const { format, replayStream } = await detectAndWrapStream(rawStream);
+              if (!sessionInitialized) {
+                detectedFormat = format;
+                if (!MULTI_FILE_FORMATS.has(format)) {
+                  activeTotalBytes = uncompressedBytes || entrySize;
+                }
+                await engine.resetSession(format);
+                sessionInitialized = true;
+              } else if (format !== detectedFormat) {
+                throw new SkippedZipEntryError();
+              }
+
+              await runAdapterForFormat(
+                format,
+                replayStream,
+                uncompressedBytes || entrySize,
+                entry,
+                callbacks,
+              );
+              completedBytes += uncompressedBytes || entrySize;
+            });
+          } else {
+            const fmt = await detectFileFormat(entry.file);
+            if (!sessionInitialized) {
+              detectedFormat = fmt;
+              if (!MULTI_FILE_FORMATS.has(fmt)) {
+                activeTotalBytes = entrySize;
+              }
+              await engine.resetSession(fmt);
+              sessionInitialized = true;
+            } else if (fmt !== detectedFormat) {
+              continue;
+            }
+            await runAdapterForFormat(fmt, entry.file.stream(), entry.file.size, entry, callbacks);
+            completedBytes += entry.file.size;
+          }
+        } catch (err) {
+          if (err instanceof SkippedZipEntryError) {
+            continue;
+          }
+          if (candidateEntries.length > 1 && err instanceof UnsupportedFormatError) {
+            continue;
+          }
+          throw err;
+        } finally {
+          currentFileBytes = 0;
+        }
+      }
+
+      if (!detectedFormat || !sessionInitialized) {
+        throw new UnsupportedFormatError();
+      }
     }
+  });
+
+  if (!detectedFormat) {
+    throw new UnsupportedFormatError();
   }
 
   emitProgress('indexing', true);
 
-  const snapshot = await engine.getDashboardSnapshot('ALL', tzOffsetMs);
+  const snapshot = await engine.getDashboardSnapshot('ALL', tzOffsetMs, timeZone);
   emitProgress('ready', true);
 
   return { format: detectedFormat, snapshot };
@@ -435,6 +514,7 @@ async function loadDemoInWorker(
   engine: XRayEngine,
   demo: DemoKind,
   tzOffsetMs: number,
+  timeZone?: string,
 ) {
   const startTime = performance.now();
   const dataset = generateDemoDataset(demo);
@@ -495,7 +575,7 @@ async function loadDemoInWorker(
     elapsedMs: Math.round(performance.now() - startTime),
   });
 
-  const snapshot = await engine.getDashboardSnapshot('ALL', tzOffsetMs);
+  const snapshot = await engine.getDashboardSnapshot('ALL', tzOffsetMs, timeZone);
   postProgress({
     phase: 'ready',
     format: dataset.format,
@@ -509,8 +589,7 @@ async function loadDemoInWorker(
   return { format: dataset.format, snapshot };
 }
 
-self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const req = event.data;
+async function handleWorkerRequest(req: WorkerRequest): Promise<void> {
   try {
     const engine = await ensureEngine();
 
@@ -530,6 +609,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           engine,
           [{ file: req.file, relativePath: req.file.name }],
           req.tzOffsetMs,
+          req.timeZone,
         );
         const res: WorkerResponse = {
           id: req.id,
@@ -541,7 +621,12 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         return;
       }
       case 'INGEST_FILES': {
-        const payload = await ingestEntriesInWorker(engine, req.entries, req.tzOffsetMs);
+        const payload = await ingestEntriesInWorker(
+          engine,
+          req.entries,
+          req.tzOffsetMs,
+          req.timeZone,
+        );
         const res: WorkerResponse = {
           id: req.id,
           type: 'RPC_SUCCESS',
@@ -552,7 +637,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         return;
       }
       case 'LOAD_DEMO': {
-        const payload = await loadDemoInWorker(engine, req.demo, req.tzOffsetMs);
+        const payload = await loadDemoInWorker(engine, req.demo, req.tzOffsetMs, req.timeZone);
         const res: WorkerResponse = {
           id: req.id,
           type: 'RPC_SUCCESS',
@@ -563,7 +648,11 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         return;
       }
       case 'GET_DASHBOARD': {
-        const snapshot = await engine.getDashboardSnapshot(req.threadId, req.tzOffsetMs);
+        const snapshot = await engine.getDashboardSnapshot(
+          req.threadId,
+          req.tzOffsetMs,
+          req.timeZone,
+        );
         const res: WorkerResponse = {
           id: req.id,
           type: 'RPC_SUCCESS',
@@ -609,4 +698,13 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     };
     self.postMessage(res);
   }
+}
+
+let rpcQueue: Promise<void> = Promise.resolve();
+
+self.onmessage = (event: MessageEvent<WorkerRequest>) => {
+  const req = event.data;
+  rpcQueue = rpcQueue
+    .catch(() => {})
+    .then(() => handleWorkerRequest(req));
 };

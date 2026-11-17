@@ -34,13 +34,17 @@ const ANDROID_HEADER_RE =
 const MEDIA_OMITTED_RE =
   /<(?:Media omitted|Медиафайлы не включены|Multimedia omitted|Файл не прикреплен|Medien ausgeschlossen)>|(?:image|video|audio|sticker|GIF|document|Contact card)\s+omitted|<attached:\s*[^>]+>|\(file attached\)/i;
 
+function tryResolveUnambiguousDateOrder(draft: RawWhatsAppDraft): DateOrder | null {
+  if (draft.p1 > 999) return 'YMD';
+  if (draft.p1 > 12) return 'DMY';
+  if (draft.p2 > 12) return 'MDY';
+  return null;
+}
+
 function resolveDateOrder(drafts: RawWhatsAppDraft[]): DateOrder {
   for (const d of drafts) {
-    if (d.p1 > 999) return 'YMD';
-  }
-  for (const d of drafts) {
-    if (d.p1 > 12) return 'DMY';
-    if (d.p2 > 12) return 'MDY';
+    const order = tryResolveUnambiguousDateOrder(d);
+    if (order !== null) return order;
   }
   return 'DMY';
 }
@@ -128,11 +132,10 @@ export async function parseWhatsAppStream(options: WhatsAppParseOptions): Promis
   let mediaOmittedCount = 0;
 
   const emitDraft = (draft: RawWhatsAppDraft, order: DateOrder) => {
-    let tsMs = toTimestampMs(draft, order, lastTsMs);
-    if (lastTsMs > 0 && tsMs < lastTsMs) {
-      tsMs = lastTsMs + 1;
+    const tsMs = toTimestampMs(draft, order, lastTsMs);
+    if (tsMs > lastTsMs) {
+      lastTsMs = tsMs;
     }
-    lastTsMs = tsMs;
 
     const body = draft.body.trim();
     if (!body) return;
@@ -183,8 +186,9 @@ export async function parseWhatsAppStream(options: WhatsAppParseOptions): Promis
     }
 
     headerBuffer.push(draft);
-    if (headerBuffer.length >= 120) {
-      resolvedOrder = resolveDateOrder(headerBuffer);
+    const immediate = tryResolveUnambiguousDateOrder(draft);
+    if (immediate !== null || headerBuffer.length >= 1000) {
+      resolvedOrder = immediate ?? resolveDateOrder(headerBuffer);
       while (headerBuffer.length > 0) {
         emitDraft(headerBuffer.shift()!, resolvedOrder);
       }

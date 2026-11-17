@@ -15,10 +15,10 @@ export interface IngestFileEntry {
 
 export type WorkerRequest =
   | { id: string; type: 'INIT' }
-  | { id: string; type: 'INGEST_FILE'; file: File; tzOffsetMs: number }
-  | { id: string; type: 'INGEST_FILES'; entries: IngestFileEntry[]; tzOffsetMs: number }
-  | { id: string; type: 'LOAD_DEMO'; demo: DemoKind; tzOffsetMs: number }
-  | { id: string; type: 'GET_DASHBOARD'; threadId: string; tzOffsetMs: number }
+  | { id: string; type: 'INGEST_FILE'; file: File; tzOffsetMs: number; timeZone?: string }
+  | { id: string; type: 'INGEST_FILES'; entries: IngestFileEntry[]; tzOffsetMs: number; timeZone?: string }
+  | { id: string; type: 'LOAD_DEMO'; demo: DemoKind; tzOffsetMs: number; timeZone?: string }
+  | { id: string; type: 'GET_DASHBOARD'; threadId: string; tzOffsetMs: number; timeZone?: string }
   | { id: string; type: 'RUN_SQL'; sql: string }
   | { id: string; type: 'RESET' };
 
@@ -49,4 +49,10 @@ export type WorkerResponse =
       id: string;
       type: 'PROGRESS_EVENT';
       progress: IngestionProgress;
+    }
+  | {
+      type: 'NETWORK_EVENT';
+      kind: 'fetch' | 'xhr';
+      url: string;
+      bytesSent: number;
     };

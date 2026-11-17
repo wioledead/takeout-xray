@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BookOpen, Check, Copy, FileArchive, Info, X } from 'lucide-react';
 import { EXPORT_GUIDES, type GuideServiceId } from '../i18n/exportGuides';
 import { useI18n } from '../i18n/useI18n';
@@ -19,6 +19,14 @@ export function ExportGuidesModal({
 
   const activeGuide = guides.find((g) => g.id === selectedId) ?? guides[0];
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   const handleCopy = async (key: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -35,6 +43,9 @@ export function ExportGuidesModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.dropzone.guidesModalTitle}
         className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#1E293B] bg-[#0D1117] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

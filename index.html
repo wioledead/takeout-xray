@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'none';"
+    />
+    <meta
       name="description"
       content="100% client-side personal data forensics in DuckDB-Wasm: Telegram, WhatsApp, Discord, X (Twitter), ChatGPT, Claude, Antigravity, Claude Code, Spotify, YouTube, TikTok & Chrome."
     />

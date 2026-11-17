@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   Download,
@@ -41,6 +41,15 @@ export function HeaderTelemetry({
 }: HeaderTelemetryProps) {
   const { lang, setLang, t } = useI18n();
   const [auditOpen, setAuditOpen] = useState(false);
+
+  useEffect(() => {
+    if (!auditOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAuditOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [auditOpen]);
 
   const isClean = networkState.isZeroExfiltration;
 
@@ -178,6 +187,9 @@ export function HeaderTelemetry({
           onClick={() => setAuditOpen(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.networkModal.title}
             className="w-full max-w-2xl rounded-lg border border-[#1E293B] bg-[#0D1117] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

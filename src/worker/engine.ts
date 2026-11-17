@@ -20,6 +20,11 @@ import type {
   YouTubeLensMetrics,
 } from '../types/domain';
 import {
+  buildLocalTsMacroSql,
+  computeOffsetSegments,
+  type TimeZoneSpec,
+} from './localTime';
+import {
   buildBehaviorSql,
   buildLexiconSql,
   buildOverviewSql,
@@ -126,7 +131,26 @@ export class XRayEngine {
       }
     }
 
+    await this.backend.query(
+      buildLocalTsMacroSql([{ startMs: Number.NEGATIVE_INFINITY, offsetMs: 0 }]),
+    );
+    await this.backend.query(
+      'SET autoinstall_known_extensions = false; SET autoload_known_extensions = false;',
+    );
+
     this.initialized = true;
+  }
+
+  private async updateLocalTimeMacro(spec: TimeZoneSpec): Promise<void> {
+    const row = extractRows(
+      await this.backend.query('SELECT MIN(ts_ms) AS min_ts, MAX(ts_ms) AS max_ts FROM events;'),
+    )[0];
+    const segments = computeOffsetSegments(
+      toOptNum(row?.min_ts),
+      toOptNum(row?.max_ts),
+      spec,
+    );
+    await this.backend.query(buildLocalTsMacroSql(segments));
   }
 
   async resetSession(format?: ExportFormat): Promise<void> {
@@ -239,9 +263,14 @@ export class XRayEngine {
     );
   }
 
-  async getDashboardSnapshot(threadId: string, tzOffsetMs: number): Promise<DashboardSnapshot> {
+  async getDashboardSnapshot(
+    threadId: string,
+    tzOffsetMs: number,
+    timeZone?: string,
+  ): Promise<DashboardSnapshot> {
     await this.init();
-    const scope = { threadId: threadId || 'ALL', tzOffsetMs };
+    const scope = { threadId: threadId || 'ALL', tzOffsetMs, timeZone };
+    await this.updateLocalTimeMacro({ tzOffsetMs, timeZone });
 
     let format = this.activeFormat;
     if (!format) {

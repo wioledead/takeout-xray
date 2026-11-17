@@ -761,6 +761,39 @@ describe('Expanded multi-service format detection & streaming adapters', () => {
     expect(events[2].has_media).toBe(true);
   });
 
+  it('infers MDY WhatsApp dates accurately even when the first >120 messages have day <= 12', async () => {
+    const lines: string[] = [];
+    for (let i = 0; i < 150; i++) {
+      const day = String((i % 12) + 1).padStart(2, '0');
+      lines.push(`[03/${day}/2026, 10:00:00 AM] Alice: Ambiguous date message ${i}`);
+    }
+    for (let i = 150; i < 154; i++) {
+      lines.push(`[03/12/2026, 10:05:00 AM] Alice: Still ambiguous ${i}`);
+    }
+    lines.push('[03/25/2026, 11:15:00 AM] Bob: Unambiguous MDY message 155');
+
+    const { stream, totalBytes } = createChunkedStream(lines.join('\n'), 64);
+    const events: NormalizedEvent[] = [];
+
+    await parseWhatsAppStream({
+      stream,
+      totalBytes,
+      chatTitle: 'WhatsApp Chat with Bob.txt',
+      onBatch: (_t, e) => {
+        events.push(...e);
+      },
+    });
+
+    expect(events).toHaveLength(155);
+    expect(new Date(events[0].ts_ms).getMonth()).toBe(2);
+    expect(new Date(events[0].ts_ms).getDate()).toBe(1);
+    const lastDate = new Date(events[154].ts_ms);
+    expect(lastDate.getFullYear()).toBe(2026);
+    expect(lastDate.getMonth()).toBe(2);
+    expect(lastDate.getDate()).toBe(25);
+    expect(lastDate.getHours()).toBe(11);
+  });
+
   it('parses Discord Data Package with index.json channel titles and DiscordChatExporter files', async () => {
     const pkgJson = JSON.stringify([
       { ID: '1', Timestamp: '2024-06-01 12:00:00', Contents: 'Hello DM', Attachments: 'https://cdn.discordapp.com/a.png' },

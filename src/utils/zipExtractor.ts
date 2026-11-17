@@ -151,6 +151,83 @@ export async function inspectZipArchive(zipFile: File): Promise<ZipArchiveGroup[
   }
 }
 
+export type ZipEntryStreamConsumer = <R>(
+  zipFile: File,
+  entryPath: string,
+  consume: (stream: ReadableStream<Uint8Array>, uncompressedBytes: number) => Promise<R>,
+) => Promise<R>;
+
+async function streamEntryData<T>(
+  target: Entry,
+  fallbackSize: number,
+  consume: (stream: ReadableStream<Uint8Array>, uncompressedBytes: number) => Promise<T>,
+): Promise<T> {
+  if (target.directory || !target.getData) {
+    throw new Error(`Archive entry not found: ${target.filename}`);
+  }
+
+  const ts = new TransformStream<Uint8Array, Uint8Array>();
+  let extractError: unknown = null;
+  const extractPromise = target.getData(ts.writable).catch((err: unknown) => {
+    extractError = err;
+    ts.writable.abort(err).catch(() => {});
+  });
+
+  try {
+    const result = await consume(ts.readable, target.uncompressedSize ?? fallbackSize);
+    await extractPromise;
+    if (extractError) {
+      throw extractError;
+    }
+    return result;
+  } catch (err) {
+    await ts.readable.cancel(err).catch(() => {});
+    await extractPromise;
+    throw err;
+  }
+}
+
+/**
+ * Opens each distinct `.zip` File once, indexes its central directory in memory,
+ * and ensures all ZipReaders are closed when the callback finishes.
+ */
+export async function withZipSessions<T>(
+  zipFiles: File[],
+  run: (withEntry: ZipEntryStreamConsumer) => Promise<T>,
+): Promise<T> {
+  const uniqueFiles = Array.from(new Set(zipFiles));
+  const sessions = new Map<File, { reader: ZipReader<Blob>; entryByPath: Map<string, Entry> }>();
+
+  try {
+    for (const file of uniqueFiles) {
+      const reader = new ZipReader(new BlobReader(file));
+      const entryByPath = new Map<string, Entry>();
+      sessions.set(file, { reader, entryByPath });
+      const entries = await reader.getEntries();
+      for (const entry of entries) {
+        if (!entry.directory) {
+          entryByPath.set(entry.filename, entry);
+        }
+      }
+    }
+
+    const withEntry: ZipEntryStreamConsumer = async (zipFile, entryPath, consume) => {
+      const session = sessions.get(zipFile);
+      const target = session?.entryByPath.get(entryPath);
+      if (!target) {
+        throw new Error(`Archive entry not found: ${entryPath}`);
+      }
+      return streamEntryData(target, zipFile.size, consume);
+    };
+
+    return await run(withEntry);
+  } finally {
+    await Promise.all(
+      Array.from(sessions.values()).map((s) => s.reader.close().catch(() => {})),
+    );
+  }
+}
+
 /**
  * Streams a single entry out of a ZIP Blob into a callback without buffering
  * the entire decompressed payload in memory.
@@ -160,34 +237,5 @@ export async function withZipEntryStream<T>(
   entryPath: string,
   consume: (stream: ReadableStream<Uint8Array>, uncompressedBytes: number) => Promise<T>,
 ): Promise<T> {
-  const reader = new ZipReader(new BlobReader(zipFile));
-  try {
-    const entries = await reader.getEntries();
-    const target = entries.find((e) => e.filename === entryPath);
-    if (!target || target.directory || !target.getData) {
-      throw new Error(`Archive entry not found: ${entryPath}`);
-    }
-
-    const ts = new TransformStream<Uint8Array, Uint8Array>();
-    let extractError: unknown = null;
-    const extractPromise = target.getData(ts.writable).catch((err: unknown) => {
-      extractError = err;
-      ts.writable.abort(err).catch(() => {});
-    });
-
-    try {
-      const result = await consume(ts.readable, target.uncompressedSize ?? zipFile.size);
-      await extractPromise;
-      if (extractError) {
-        throw extractError;
-      }
-      return result;
-    } catch (err) {
-      await ts.readable.cancel(err).catch(() => {});
-      await extractPromise;
-      throw err;
-    }
-  } finally {
-    await reader.close().catch(() => {});
-  }
+  return withZipSessions([zipFile], (withEntry) => withEntry(zipFile, entryPath, consume));
 }

@@ -2,6 +2,8 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { XRayEngine, type DuckDBBackend, type DuckDBTableLike } from '../worker/engine';
+import { computeOffsetSegments } from '../worker/localTime';
+import { validateReadOnlySql } from '../worker/queries.sql';
 import type { NormalizedEvent, NormalizedThread } from '../types/domain';
 
 const require = createRequire(import.meta.url);
@@ -270,6 +272,104 @@ describe('XRayEngine DuckDB integration', () => {
       // User_0 has 2 of 21 total events = 9.5%, NOT 2 / top15_sum
       const user0 = snap.overview.topSenders.find((s) => s.senderName === 'User_0');
       expect(user0?.sharePct).toBe(9.5);
+    } finally {
+      close();
+    }
+  });
+
+  it('blocks external file functions, URLs, PRAGMA, and SET in SQL sandbox', async () => {
+    expect(validateReadOnlySql("SELECT * FROM read_csv('https://evil.example/x.csv');").valid).toBe(false);
+    expect(validateReadOnlySql("SELECT * FROM read_json('events_batch_0.ndjson');").valid).toBe(false);
+    expect(validateReadOnlySql("SELECT * FROM read_parquet('secret.parquet');").valid).toBe(false);
+    expect(validateReadOnlySql('SELECT * FROM duckdb_settings();').valid).toBe(false);
+    expect(validateReadOnlySql("SELECT 'https://evil.example/?leak=' || text_content FROM events;").valid).toBe(false);
+    expect(validateReadOnlySql('PRAGMA table_info(events);').valid).toBe(false);
+    expect(validateReadOnlySql("SET enable_external_access = true;").valid).toBe(false);
+
+    const { backend, close } = await createNodeDuckDB();
+    try {
+      const engine = new XRayEngine(backend);
+      await engine.init();
+
+      await expect(engine.runSql("SELECT * FROM read_csv('https://evil.example/a.csv');")).rejects.toThrow();
+      await expect(engine.runSql("SELECT * FROM read_json('test.ndjson');")).rejects.toThrow();
+      await expect(engine.runSql('PRAGMA show_tables;')).rejects.toThrow();
+      await expect(engine.runSql('SET threads = 1;')).rejects.toThrow();
+    } finally {
+      close();
+    }
+  });
+
+  it('computes DST-aware local_ts segments for Europe/Berlin and America/New_York across winter and summer', async () => {
+    const winterMs = Date.UTC(2024, 0, 15, 12, 0, 0);
+    const summerMs = Date.UTC(2024, 6, 15, 12, 0, 0);
+
+    const berlinSegments = computeOffsetSegments(winterMs, summerMs, {
+      tzOffsetMs: 3_600_000,
+      timeZone: 'Europe/Berlin',
+    });
+    expect(berlinSegments.length).toBeGreaterThanOrEqual(2);
+    expect(berlinSegments[0].offsetMs).toBe(3_600_000);
+    expect(berlinSegments[1].offsetMs).toBe(7_200_000);
+
+    const nySegments = computeOffsetSegments(winterMs, summerMs, {
+      tzOffsetMs: -18_000_000,
+      timeZone: 'America/New_York',
+    });
+    expect(nySegments.length).toBeGreaterThanOrEqual(2);
+    expect(nySegments[0].offsetMs).toBe(-18_000_000);
+    expect(nySegments[1].offsetMs).toBe(-14_400_000);
+
+    const { backend, close } = await createNodeDuckDB();
+    try {
+      const engine = new XRayEngine(backend);
+      await engine.init();
+
+      await engine.ingestBatch(
+        [{ thread_id: 'dst_1', source_type: 'tg_chat', title: 'DST Chat', thread_kind: 'personal_chat', extra_count: 0 }],
+        [
+          {
+            event_id: 'w1',
+            thread_id: 'dst_1',
+            source_type: 'tg_chat',
+            event_kind: 'message',
+            ts_ms: winterMs,
+            sender_id: 'u1',
+            sender_name: 'Alice',
+            text_content: 'winter noon utc',
+            char_count: 15,
+            word_count: 3,
+            question_count: 0,
+            has_code: false,
+            has_media: false,
+            emojis: [],
+            domain: null,
+            meta_subtype: null,
+          },
+          {
+            event_id: 's1',
+            thread_id: 'dst_1',
+            source_type: 'tg_chat',
+            event_kind: 'message',
+            ts_ms: summerMs,
+            sender_id: 'u1',
+            sender_name: 'Alice',
+            text_content: 'summer noon utc',
+            char_count: 15,
+            word_count: 3,
+            question_count: 0,
+            has_code: false,
+            has_media: false,
+            emojis: [],
+            domain: null,
+            meta_subtype: null,
+          },
+        ],
+      );
+
+      const snap = await engine.getDashboardSnapshot('ALL', 3_600_000, 'Europe/Berlin');
+      expect(snap.behavior.hourlyBreakdown.find((h) => h.hour === 13)?.count).toBe(1);
+      expect(snap.behavior.hourlyBreakdown.find((h) => h.hour === 14)?.count).toBe(1);
     } finally {
       close();
     }

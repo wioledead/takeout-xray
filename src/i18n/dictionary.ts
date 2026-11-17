@@ -664,7 +664,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
     shareModal: {
       title: 'X-Ray Wrapped Card Generator',
       subtitle: 'Renders a 1080×1350 terminal poster locally in PNG without leaving your browser',
-      anonymize: 'Anonymize Names',
+      anonymize: 'Anonymize Data',
       downloadPng: 'Download PNG',
       exporting: 'Rendering PNG...',
       exportFailed: 'Failed to export PNG in current browser context.',
@@ -1025,7 +1025,7 @@ export const DICTIONARY: Record<Language, TranslationDictionary> = {
     shareModal: {
       title: 'Генератор карточки X-Ray Wrapped',
       subtitle: 'Локальный рендер постера 1080×1350 в формате PNG без отправки на сервер',
-      anonymize: 'Анонимизировать имена',
+      anonymize: 'Анонимизировать данные',
       downloadPng: 'Скачать PNG',
       exporting: 'Генерация PNG...',
       exportFailed: 'Не удалось отрендерить PNG в текущем браузере.',

@@ -76,6 +76,29 @@ class NetworkGuardMonitor {
     }
   }
 
+  recordWorkerEvent(kind: 'fetch' | 'xhr', url: string, bytesSent: number): void {
+    const external = !this.isLocalAssetUrl(url);
+    if (!this.initialized && external) {
+      this.externalRequestsCount += 1;
+      const effective = bytesSent === 0 ? this.measureExternalUrlBytes(url) : bytesSent;
+      this.bytesSentAfterLoad += effective;
+    }
+    this.recordEntry(kind, url, bytesSent);
+  }
+
+  private measureExternalUrlBytes(rawUrl: string): number {
+    try {
+      const parsed = new URL(
+        rawUrl,
+        typeof window !== 'undefined' ? window.location.href : 'http://localhost',
+      );
+      const queryAndHash = `${parsed.search}${parsed.hash}`;
+      return queryAndHash ? new TextEncoder().encode(queryAndHash).byteLength : 0;
+    } catch {
+      return 0;
+    }
+  }
+
   private isLocalAssetUrl(rawUrl: string): boolean {
     if (!rawUrl) return true;
     if (rawUrl.startsWith('blob:') || rawUrl.startsWith('data:') || rawUrl.startsWith('/')) {
@@ -99,10 +122,12 @@ class NetworkGuardMonitor {
     }
 
     const external = !this.isLocalAssetUrl(rawUrl);
+    const effectiveBytes =
+      external && bytesSent === 0 ? this.measureExternalUrlBytes(rawUrl) : bytesSent;
     const phase: NetworkLogEntry['phase'] = this.initialized ? 'post-init' : 'init';
 
     if (this.initialized) {
-      this.bytesSentAfterLoad += bytesSent;
+      this.bytesSentAfterLoad += effectiveBytes;
       if (external) {
         this.externalRequestsCount += 1;
       }
@@ -113,7 +138,7 @@ class NetworkGuardMonitor {
       timestamp: new Date().toISOString().split('T')[1]?.replace('Z', '') ?? '',
       kind,
       url: rawUrl,
-      bytesSent,
+      bytesSent: effectiveBytes,
       external,
       phase,
     };

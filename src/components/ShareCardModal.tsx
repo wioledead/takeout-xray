@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { Download, EyeOff, ShieldCheck, Terminal, X } from 'lucide-react';
 import { useI18n } from '../i18n/useI18n';
@@ -19,7 +19,15 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
 
   const { format, selectedThreadId, overview, behavior, lexicon } = snapshot;
 
-  // Build deterministic anonymization lookup
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
+  // Build deterministic anonymization lookups
   const aliasMap = new Map<string, string>();
   let seq = 1;
   const anonymizeName = (name: string): string => {
@@ -28,6 +36,27 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
     if (existing) return existing;
     const alias = `Subject_${String(seq++).padStart(2, '0')}`;
     aliasMap.set(name, alias);
+    return alias;
+  };
+
+  const wordMap = new Map<string, string>();
+  const anonymizeWord = (word: string, idx: number): string => {
+    if (!anonymize) return word;
+    const existing = wordMap.get(word);
+    if (existing) return existing;
+    const alias = `word_${String(idx + 1).padStart(2, '0')}`;
+    wordMap.set(word, alias);
+    return alias;
+  };
+
+  const domainMap = new Map<string, string>();
+  let domainSeq = 1;
+  const anonymizeDomain = (domain: string): string => {
+    if (!anonymize) return domain;
+    const existing = domainMap.get(domain);
+    if (existing) return existing;
+    const alias = `domain_${String(domainSeq++).padStart(2, '0')}.redacted`;
+    domainMap.set(domain, alias);
     return alias;
   };
 
@@ -58,7 +87,6 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
         backgroundColor: '#07090D',
-        cacheBust: true,
       });
       const link = document.createElement('a');
       link.download = `takeout-xray-${format}-${anonymize ? 'anon' : 'wrapped'}.png`;
@@ -77,6 +105,9 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.shareModal.title}
         className="flex max-h-[95vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#1E293B] bg-[#0D1117] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -251,7 +282,7 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                             : lexicon.twitterLens?.topHandles[0]
                               ? `${anonymizeName(lexicon.twitterLens.topHandles[0].handle)} (${lexicon.twitterLens.topHandles[0].sharePct}%)`
                               : lexicon.chromeLens?.topDomains[0]
-                                ? `${lexicon.chromeLens.topDomains[0].domain} (${lexicon.chromeLens.topDomains[0].sharePct}%)`
+                                ? `${anonymizeDomain(lexicon.chromeLens.topDomains[0].domain)} (${lexicon.chromeLens.topDomains[0].sharePct}%)`
                                 : lexicon.antigravityLens
                                   ? `${lexicon.antigravityLens.cacheHitPct}%`
                                   : lexicon.chatgptLens
@@ -289,7 +320,7 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                             : lexicon.twitterLens
                               ? `${lexicon.twitterLens.originalTweets} / ${lexicon.twitterLens.replyTweets} / ${lexicon.twitterLens.retweetTweets}`
                               : lexicon.chromeLens?.rabbitHoles[0]
-                                ? `${lexicon.chromeLens.rabbitHoles[0].domain} · ${lexicon.chromeLens.rabbitHoles[0].streakCount}`
+                                ? `${anonymizeDomain(lexicon.chromeLens.rabbitHoles[0].domain)} · ${lexicon.chromeLens.rabbitHoles[0].streakCount}`
                                 : lexicon.antigravityLens
                                   ? `${lexicon.antigravityLens.toolExecutions.toLocaleString()} (${lexicon.antigravityLens.topTools[0]?.toolName ?? '—'})`
                                   : lexicon.chatgptLens
@@ -353,7 +384,7 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                         lexicon.topWords.slice(0, 5).map((w, idx) => (
                           <div key={w.word} className="flex justify-between">
                             <span className="truncate text-slate-200">
-                              {idx + 1}. {w.word}
+                              {idx + 1}. {anonymizeWord(w.word, idx)}
                             </span>
                             <span className="text-[#00FF9D]">{w.count.toLocaleString()}</span>
                           </div>
@@ -383,7 +414,7 @@ export function ShareCardModal({ snapshot, onClose }: ShareCardModalProps) {
                         {lexicon.chromeLens.topDomains.slice(0, 5).map((d, idx) => (
                           <div key={d.domain} className="flex justify-between">
                             <span className="truncate text-slate-200">
-                              {idx + 1}. {d.domain}
+                              {idx + 1}. {anonymizeDomain(d.domain)}
                             </span>
                             <span className="text-[#F59E0B]">{d.visits}</span>
                           </div>

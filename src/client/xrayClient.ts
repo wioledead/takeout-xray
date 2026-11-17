@@ -6,6 +6,7 @@ import type {
   SqlQueryResult,
 } from '../types/domain';
 import type { IngestFileEntry, WorkerPayloadMap, WorkerRequest, WorkerResponse } from '../types/rpc';
+import { networkGuard } from '../utils/networkGuard';
 
 interface PendingRpc {
   resolve: (payload: WorkerPayloadMap[WorkerRequest['type']]) => void;
@@ -24,6 +25,14 @@ export class WorkerRpcError extends Error {
 
 export function getLocalTzOffsetMs(): number {
   return -new Date().getTimezoneOffset() * 60000;
+}
+
+export function getLocalTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export class XRayClient {
@@ -45,6 +54,11 @@ export class XRayClient {
         for (const listener of this.progressListeners) {
           listener(msg.progress);
         }
+        return;
+      }
+
+      if (msg.type === 'NETWORK_EVENT') {
+        networkGuard.recordWorkerEvent(msg.kind, msg.url, msg.bytesSent);
         return;
       }
 
@@ -103,6 +117,7 @@ export class XRayClient {
       type: 'INGEST_FILE',
       file,
       tzOffsetMs: getLocalTzOffsetMs(),
+      timeZone: getLocalTimeZone(),
     });
   }
 
@@ -116,6 +131,7 @@ export class XRayClient {
       type: 'INGEST_FILES',
       entries,
       tzOffsetMs: getLocalTzOffsetMs(),
+      timeZone: getLocalTimeZone(),
     });
   }
 
@@ -124,6 +140,7 @@ export class XRayClient {
       type: 'LOAD_DEMO',
       demo,
       tzOffsetMs: getLocalTzOffsetMs(),
+      timeZone: getLocalTimeZone(),
     });
   }
 
@@ -132,6 +149,7 @@ export class XRayClient {
       type: 'GET_DASHBOARD',
       threadId,
       tzOffsetMs: getLocalTzOffsetMs(),
+      timeZone: getLocalTimeZone(),
     });
     return res.snapshot;
   }

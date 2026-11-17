@@ -18,13 +18,13 @@ Drag and drop raw `.zip` archives, folders, or massive JSON/JSONL/JS/TXT exports
 
 ## Privacy & Streaming Architecture Guarantees
 
-- **Zero Backend / Zero Upload:** Everything runs locally inside your browser tab via Dedicated Web Worker + DuckDB-Wasm.
-- **Streaming `.ZIP` Central-Directory Slicing:** Multi-gigabyte Takeout / Discord / X / ChatGPT `.zip` bundles are inspected in milliseconds without extracting heavy media folders (`@zip.js/zip.js` with external workers disabled), and multi-service Google Takeout `.zip` archives let you pick each dataset interactively.
+- **Zero Backend / Self-Hosted DuckDB-Wasm:** Everything runs locally inside your browser tab via Dedicated Web Worker + self-hosted DuckDB-Wasm assets (no runtime CDN scripts or `.wasm` downloads), enforced by a strict Content Security Policy (`connect-src 'self' data: blob:`).
+- **Streaming `.ZIP` Central-Directory Slicing:** Multi-gigabyte Takeout / Discord / X / ChatGPT `.zip` bundles are inspected once per archive without extracting heavy media folders (`@zip.js/zip.js` with external workers disabled), and multi-service Google Takeout `.zip` archives let you pick each dataset interactively.
 - **Zero Full-File `JSON.parse()`:** Huge logs are streamed incrementally with `ReadableStream` (`file.stream().getReader()`) and `@streamparser/json` inside `src/worker/xray.worker.ts`. Official X / Twitter `window.YTD.<type>.partN = [...]` wrappers are stripped on the fly via constant-memory byte streaming.
 - **Folder Smart Deduplication:** Dropping local agent directories (like `~/.gemini/antigravity/brain` or `~/.claude/projects`) automatically selects `transcript_full.jsonl` over `transcript.jsonl` and deduplicates streaming chunk usage by `message.id`.
-- **DuckDB-Wasm Memory Hygiene:** Events, agent steps, and media/social telemetry flush in `5,000`-row NDJSON batches using `db.registerFileText(...)` + `read_json(...)` and are immediately cleaned up with `await db.dropFile(...)`.
+- **DuckDB-Wasm Memory Hygiene & SQL Sandbox:** Events, agent steps, and media/social telemetry flush in `5,000`-row NDJSON batches using `db.registerFileText(...)` + `read_json(...)` and are immediately cleaned up with `await db.dropFile(...)`. User SQL queries are restricted to read-only statements with external file/URL functions blocked and extension autoloading disabled after startup.
 - **No `COOP / COEP` Headers Required:** Deploys cleanly on any static host (GitHub Pages, Cloudflare Pages, Netlify, Vercel).
-- **Live Network Telemetry Audit:** Built-in `PerformanceObserver` + `fetch`/`XHR`/`sendBeacon` monitor keeps a live `0 B SENT AFTER LOAD` indicator with an inspectable audit modal.
+- **Live Network Telemetry Audit:** Built-in `PerformanceObserver` + `fetch`/`XHR`/`sendBeacon` monitors across both the main thread and the analysis worker keep a live `0 B SENT AFTER LOAD` indicator with an inspectable audit modal.
 
 ```mermaid
 flowchart LR
@@ -65,7 +65,7 @@ Built-in step-by-step **Export Guides (EN / RU)** are included directly inside t
 2. **Archetype-Aware Analytics (`formatProfile.ts`):** Metrics adapt to the platform archetype so chat-only metrics (like *6h Conversation Initiator*, *Median Reply Latency*, or *Monologue Streaks*) never appear on YouTube, Spotify, TikTok, Chrome, Coding Agents, or X/Twitter. Instead, each service surfaces domain-native breakdowns (`Channel Binge Marathons`, `Posting Style & Clients`, `Playback Skip vs Shuffle`, `Domain Rabbit Holes`, `Agent Tool Calls`).
 3. **Circadian Matrix & Lexicon Engine:** 24×7 local timezone heatmap, stopwords-filtered EN/RU top vocabulary by year, Unicode emoji extractor, and specialized forensic lens cards.
 4. **Live Read-Only DuckDB SQL Console:** Query `events`, `threads`, `antigravity_steps`, `media_events`, and `stopwords` directly in SQL with source-prioritized presets, 500-row DOM cap, and 1-click CSV copy.
-5. **Anonymizable `1080×1350` X-Ray Wrapped Card:** Generate and download a shareable PNG summary customized for the active platform, with an **Anonymize Names** toggle (`Subject_01`, `Thread_REDACTED`).
+5. **Anonymizable `1080×1350` X-Ray Wrapped Card:** Generate and download a shareable PNG summary customized for the active platform, with an **Anonymize Data** toggle that masks participant names (`Subject_01`), thread titles (`Thread_REDACTED`), top vocabulary (`word_01`), and browser domains (`domain_01.redacted`).
 
 ---
 

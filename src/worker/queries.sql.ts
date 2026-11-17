@@ -3,6 +3,7 @@ import type { TranslationDictionary } from '../i18n/dictionary';
 export interface QueryScope {
   threadId: string;
   tzOffsetMs: number;
+  timeZone?: string;
 }
 
 export function escapeSqlLiteral(value: string): string {
@@ -30,7 +31,6 @@ export function getOffsetInt(tzOffsetMs: number): number {
 export function buildOverviewSql(scope: QueryScope) {
   const ew = buildEventWhere(scope);
   const tw = buildThreadWhere(scope);
-  const off = getOffsetInt(scope.tzOffsetMs);
 
   return {
     kpis: `
@@ -43,7 +43,7 @@ export function buildOverviewSql(scope: QueryScope) {
         COALESCE(SUM(char_count), 0) AS total_chars,
         COUNT(*) FILTER (WHERE has_media) AS total_media,
         COUNT(*) FILTER (WHERE event_kind = 'service') AS total_service_events,
-        COUNT(DISTINCT DATE_TRUNC('day', epoch_ms(ts_ms + ${off}))) AS active_days,
+        COUNT(DISTINCT DATE_TRUNC('day', local_ts(ts_ms))) AS active_days,
         MIN(ts_ms) AS first_event_ts,
         MAX(ts_ms) AS last_event_ts
       FROM events
@@ -56,8 +56,8 @@ export function buildOverviewSql(scope: QueryScope) {
     `,
     heatmap: `
       SELECT
-        CAST(ISODOW(epoch_ms(ts_ms + ${off})) AS INTEGER) AS dow,
-        CAST(HOUR(epoch_ms(ts_ms + ${off})) AS INTEGER) AS hour,
+        CAST(ISODOW(local_ts(ts_ms)) AS INTEGER) AS dow,
+        CAST(HOUR(local_ts(ts_ms)) AS INTEGER) AS hour,
         COUNT(*) AS count
       FROM events
       WHERE ${ew}
@@ -66,7 +66,7 @@ export function buildOverviewSql(scope: QueryScope) {
     `,
     timelineMonthly: `
       SELECT
-        STRFTIME(epoch_ms(ts_ms + ${off}), '%Y-%m') AS bucket,
+        STRFTIME(local_ts(ts_ms), '%Y-%m') AS bucket,
         COUNT(*) AS count
       FROM events
       WHERE ${ew}
@@ -75,7 +75,7 @@ export function buildOverviewSql(scope: QueryScope) {
     `,
     timelineDaily: `
       SELECT
-        STRFTIME(epoch_ms(ts_ms + ${off}), '%Y-%m-%d') AS bucket,
+        STRFTIME(local_ts(ts_ms), '%Y-%m-%d') AS bucket,
         COUNT(*) AS count
       FROM events
       WHERE ${ew}
@@ -115,7 +115,6 @@ export function buildOverviewSql(scope: QueryScope) {
 
 export function buildBehaviorSql(scope: QueryScope) {
   const ew = buildEventWhere(scope);
-  const off = getOffsetInt(scope.tzOffsetMs);
 
   return {
     initiators: `
@@ -207,7 +206,7 @@ export function buildBehaviorSql(scope: QueryScope) {
     `,
     hourly: `
       SELECT
-        CAST(HOUR(epoch_ms(ts_ms + ${off})) AS INTEGER) AS hour,
+        CAST(HOUR(local_ts(ts_ms)) AS INTEGER) AS hour,
         COUNT(*) AS count
       FROM events
       WHERE ${ew}
@@ -220,7 +219,6 @@ export function buildBehaviorSql(scope: QueryScope) {
 export function buildLexiconSql(scope: QueryScope) {
   const ew = buildEventWhere(scope);
   const tw = buildThreadWhere(scope);
-  const off = getOffsetInt(scope.tzOffsetMs);
 
   return {
     topWords: `
@@ -242,7 +240,7 @@ export function buildLexiconSql(scope: QueryScope) {
     wordsByYear: `
       WITH tokens AS (
         SELECT
-          CAST(YEAR(epoch_ms(ts_ms + ${off})) AS INTEGER) AS year,
+          CAST(YEAR(local_ts(ts_ms)) AS INTEGER) AS year,
           UNNEST(regexp_extract_all(lower(text_content), '[a-zа-яё]{3,}')) AS word
         FROM events
         WHERE ${ew} AND event_kind != 'service' AND text_content != ''
@@ -309,7 +307,7 @@ export function buildLexiconSql(scope: QueryScope) {
       ),
       peak AS (
         SELECT
-          CAST(HOUR(epoch_ms(ts_ms + ${off})) AS INTEGER) AS hr,
+          CAST(HOUR(local_ts(ts_ms)) AS INTEGER) AS hr,
           COUNT(*) AS c
         FROM events
         WHERE ${ew} AND meta_subtype = 'user'
@@ -636,8 +634,12 @@ export function buildLexiconSql(scope: QueryScope) {
   };
 }
 
-const ALLOWED_START_RE = /^(SELECT|WITH|DESCRIBE|SHOW|EXPLAIN|PRAGMA|SUMMARIZE)\b/i;
-const FORBIDDEN_KEYWORD_RE = /\b(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|ATTACH|DETACH|COPY|EXPORT|IMPORT|TRUNCATE|REPLACE|VACUUM|CALL|INSTALL|LOAD)\b/i;
+const ALLOWED_START_RE = /^(SELECT|WITH|DESCRIBE|SHOW|EXPLAIN|SUMMARIZE)\b/i;
+const FORBIDDEN_KEYWORD_RE =
+  /\b(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|ATTACH|DETACH|COPY|EXPORT|IMPORT|TRUNCATE|REPLACE|VACUUM|CALL|INSTALL|LOAD|SET|RESET|PRAGMA)\b/i;
+const FORBIDDEN_FUNCTION_RE =
+  /\b(read_csv|read_csv_auto|read_json|read_json_auto|read_json_objects|read_ndjson|read_ndjson_objects|read_ndjson_auto|read_parquet|read_text|read_blob|parquet_scan|parquet_metadata|parquet_schema|parquet_file_metadata|parquet_kv_metadata|csv_sniffer|sniff_csv|glob|duckdb_extensions|duckdb_settings)\s*\(|\bpragma_/i;
+const FORBIDDEN_URI_RE = /\b(?:https?|s3|gs|gcs|hf|ftp|file|ws|wss):\/\//i;
 
 /**
  * Strips SQL comments and replaces single/double-quoted literals with safe placeholders
@@ -689,6 +691,14 @@ export function validateReadOnlySql(rawSql: string): { valid: boolean; cleanSql:
     };
   }
 
+  if (FORBIDDEN_FUNCTION_RE.test(skeleton) || FORBIDDEN_URI_RE.test(rawSql)) {
+    return {
+      valid: false,
+      cleanSql: '',
+      error: 'External file or URL access functions are blocked in the SQL forensic sandbox.',
+    };
+  }
+
   const trimmedOriginal = rawSql.trim();
   return { valid: true, cleanSql: trimmedOriginal };
 }
@@ -698,8 +708,7 @@ export interface SqlPreset {
   sql: string;
 }
 
-export function getSqlPresets(tzOffsetMs: number): SqlPreset[] {
-  const off = getOffsetInt(tzOffsetMs);
+export function getSqlPresets(_tzOffsetMs = 0): SqlPreset[] {
   return [
     {
       id: 'monologues',
@@ -719,7 +728,7 @@ turns AS (
 SELECT
   sender_name,
   COUNT(*) AS consecutive_events,
-  MIN(epoch_ms(ts_ms + ${off})) AS started_at
+  MIN(local_ts(ts_ms)) AS started_at
 FROM turns
 GROUP BY thread_id, turn_id, sender_name
 ORDER BY consecutive_events DESC
@@ -729,11 +738,11 @@ LIMIT 10;`,
       id: 'lateNight',
       sql: `SELECT
   sender_name,
-  CAST(HOUR(epoch_ms(ts_ms + ${off})) AS INTEGER) AS local_hour,
+  CAST(HOUR(local_ts(ts_ms)) AS INTEGER) AS local_hour,
   COUNT(*) AS late_events,
   ROUND(AVG(word_count), 1) AS avg_words
 FROM events
-WHERE HOUR(epoch_ms(ts_ms + ${off})) BETWEEN 0 AND 4
+WHERE HOUR(local_ts(ts_ms)) BETWEEN 0 AND 4
 GROUP BY 1, 2
 ORDER BY late_events DESC
 LIMIT 25;`,
@@ -744,7 +753,7 @@ LIMIT 25;`,
   domain,
   COUNT(*) AS hits,
   COUNT(DISTINCT sender_name) AS unique_senders,
-  MAX(epoch_ms(ts_ms + ${off})) AS last_seen
+  MAX(local_ts(ts_ms)) AS last_seen
 FROM events
 WHERE domain IS NOT NULL AND domain != ''
 GROUP BY domain
@@ -754,7 +763,7 @@ LIMIT 25;`,
     {
       id: 'hourlyVolume',
       sql: `SELECT
-  CAST(HOUR(epoch_ms(ts_ms + ${off})) AS INTEGER) AS hour_of_day,
+  CAST(HOUR(local_ts(ts_ms)) AS INTEGER) AS hour_of_day,
   COUNT(*) AS event_count,
   SUM(word_count) AS total_words,
   SUM(question_count) AS questions
@@ -857,7 +866,7 @@ LIMIT 25;`,
   creator_name AS channel,
   COUNT(*) AS videos,
   COUNT(*) FILTER (WHERE album_or_sub = 'shorts') AS shorts,
-  MAX(epoch_ms(ts_ms + ${off})) AS last_watched
+  MAX(local_ts(ts_ms)) AS last_watched
 FROM media_events
 WHERE source_type IN ('youtube', 'tiktok')
 GROUP BY creator_name
@@ -871,7 +880,7 @@ LIMIT 25;`,
   creator_name AS target_handle,
   COALESCE(album_or_sub, 'X Web') AS client,
   ms_played AS likes_received,
-  epoch_ms(ts_ms + ${off}) AS posted_at,
+  local_ts(ts_ms) AS posted_at,
   item_title AS tweet_text
 FROM media_events
 WHERE source_type = 'twitter'
